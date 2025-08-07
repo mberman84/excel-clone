@@ -235,3 +235,80 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
 .row-resize-handle:hover {
   background: rgba(0, 0, 0, 0.05);
 }
+
+/* ------------------------------------------------------------------ */
+/* Bottom Tab Bar + Sheet Tabs                                        */
+/* ------------------------------------------------------------------ */
+
+.tab-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+  overflow-x: auto;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font: inherit;
+  color: var(--header-fg);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.tab:hover { background: #f9f9f9; }
+
+.tab.active {
+  background: var(--selected);
+  border-color: var(--selected);
+  color: #fff;
+}
+
+/* delete (×) button shown on hover, hidden otherwise */
+.tab .delete-tab {
+  display: none;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+.tab:hover .delete-tab { display: inline; }
+
+/* input for renaming tab */
+.tab input {
+  font: inherit;
+  border: none;
+  background: transparent;
+  width: 100px;
+  text-align: center;
+  outline: none;
+  color: inherit;
+}
+
+/* Add (+) tab style */
+.tab.add-tab {
+  padding: 4px 10px;
+  font-size: 20px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  color: var(--header-fg);
+}
+.tab.add-tab:hover {
+  background: #f5f5f5;
+  border: 1px solid var(--border);
+}

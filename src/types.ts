@@ -14,6 +14,15 @@ export type Cell = {
 export type Sheet = {
   cells: Record<string, Cell>
   /**
+   * Optional unique identifier for this sheet.  Helpful when persisting an
+   * array of tabs so React key stability is guaranteed even after re-order.
+   */
+  id?: string
+  /**
+   * Human-readable tab name (defaults to “Sheet 1”, “Sheet 2”, …).
+   */
+  name?: string
+  /**
    * Optional per-column widths (px). Index 0 => column A, etc.
    * Undefined index => default width from grid component.
    */

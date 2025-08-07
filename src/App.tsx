@@ -2,15 +2,39 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import SheetGrid from './grid/SheetGrid'
 import { useStore } from './store'
 import { makeCellAddress } from './utils/cellAddresses'
-import { exportToCSV, exportToXLSX, importFromFile } from './io/xlsx'
+import { exportToCSV, exportWorkbookToXLSX, importFromFile } from './io/xlsx'
+import classNames from 'classnames'
 
 // ---------------------------------------------------------------------------
 // Build / release identifier
 // ---------------------------------------------------------------------------
-const VERSION = 'v2025.08.07-7'
+const VERSION = 'v2025.08.07-8'
 
 export default function App() {
-  const { sheet, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit, toggleFormat, setTextColor, setFillColor, undo, redo, toAOA, fromAOA } = useStore(s => ({
+  const {
+    workbook,
+    sheet,
+    selection,
+    editing,
+    selectCell,
+    startEdit,
+    setDraft,
+    commitEdit,
+    cancelEdit,
+    toggleFormat,
+    setTextColor,
+    setFillColor,
+    undo,
+    redo,
+    toAOA,
+    toAOAAll,
+    fromAOA,
+    addSheet,
+    renameSheet,
+    deleteSheet,
+    setActiveSheet,
+  } = useStore(s => ({
+    workbook: s.workbook,
     sheet: s.sheet,
     selection: s.selection,
     editing: s.editing,
@@ -25,7 +49,14 @@ export default function App() {
     undo: s.undo,
     redo: s.redo,
     toAOA: s.toAOA,
+    toAOAAll: s.toAOAAll,
     fromAOA: s.fromAOA,
+
+    // tab actions
+    addSheet: s.addSheet,
+    renameSheet: s.renameSheet,
+    deleteSheet: s.deleteSheet,
+    setActiveSheet: s.setActiveSheet,
   }))
 
   const selectedAddr = useMemo(() => {
@@ -67,8 +98,21 @@ export default function App() {
     exportToCSV('sheet.csv', toAOA())
   }
   const onExportXLSX = () => {
-    exportToXLSX('sheet.xlsx', toAOA())
+    exportWorkbookToXLSX('workbook.xlsx', toAOAAll())
   }
+
+  // -----------------------------------------------------------------------
+  // Tab-bar local rename state
+  // -----------------------------------------------------------------------
+  const [renamingIndex, setRenamingIndex] = useState<number | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
+  const renameInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (renamingIndex != null) {
+      renameInputRef.current?.focus()
+    }
+  }, [renamingIndex])
 
   return (
     <div className="app">
@@ -97,8 +141,8 @@ export default function App() {
         <span className="spacer" />
         {/* file actions */}
         <div className="segmented">
-          <button className="btn" onClick={() => exportToCSV('sheet.csv', toAOA())}>Export CSV</button>
-          <button className="btn" onClick={() => exportToXLSX('sheet.xlsx', toAOA())}>Export XLSX</button>
+          <button className="btn" onClick={onExportCSV}>Export CSV</button>
+          <button className="btn" onClick={onExportXLSX}>Export XLSX</button>
           <label className="import-btn btn">
             Import
             <input
@@ -125,6 +169,60 @@ export default function App() {
       </div>
 
       <SheetGrid />
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Bottom Tab Bar                                                  */}
+      {/* ---------------------------------------------------------------- */}
+      <div className="tab-bar">
+        {workbook.sheets.map((sh, idx) => (
+          <div
+            key={sh.id}
+            className={classNames('tab', { active: idx === workbook.activeIndex })}
+            onClick={() => setActiveSheet(idx)}
+            onDoubleClick={() => {
+              setRenamingIndex(idx)
+              setRenameDraft(sh.name ?? `Sheet ${idx + 1}`)
+            }}
+          >
+            {renamingIndex === idx ? (
+              <input
+                ref={renameInputRef}
+                value={renameDraft}
+                onChange={e => setRenameDraft(e.target.value)}
+                onBlur={() => {
+                  renameSheet(idx, renameDraft.trim() || `Sheet ${idx + 1}`)
+                  setRenamingIndex(null)
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    renameSheet(idx, renameDraft.trim() || `Sheet ${idx + 1}`)
+                    setRenamingIndex(null)
+                  }
+                  if (e.key === 'Escape') {
+                    setRenamingIndex(null)
+                  }
+                }}
+              />
+            ) : (
+              <>
+                <span className="name">{sh.name}</span>
+                {workbook.sheets.length > 1 && (
+                  <button
+                    className="delete-tab"
+                    onClick={e => {
+                      e.stopPropagation()
+                      deleteSheet(idx)
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+        <button className="tab add-tab" onClick={addSheet}>＋</button>
+      </div>
     </div>
   )
 }
