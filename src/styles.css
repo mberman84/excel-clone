@@ -103,3 +103,36 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   background: var(--header-bg);
   color: var(--header-fg);
 }
+
+/* ------------------------------------------------------------------ */
+/* Row / Column Resize Handles                                        */
+/* ------------------------------------------------------------------ */
+
+.col-resize-handle,
+.row-resize-handle {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+}
+
+.col-resize-handle {
+  top: 0;
+  right: -3px;              /* extend slightly past border for easy grab */
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.row-resize-handle {
+  left: 0;
+  bottom: -3px;             /* extend slightly past border for easy grab */
+  height: 6px;
+  width: 100%;
+  cursor: row-resize;
+}
+
+/* subtle hover cue */
+.col-resize-handle:hover,
+.row-resize-handle:hover {
+  background: rgba(0, 0, 0, 0.05);
+}

@@ -7,7 +7,7 @@ import { exportToCSV, exportToXLSX, importFromFile } from './io/xlsx'
 // ---------------------------------------------------------------------------
 // Build / release identifier
 // ---------------------------------------------------------------------------
-const VERSION = 'v2025.08.07-5'
+const VERSION = 'v2025.08.07-6'
 
 export default function App() {
   const { sheet, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit, toggleFormat, setTextColor, setFillColor, undo, redo, toAOA, fromAOA } = useStore(s => ({
