@@ -570,9 +570,13 @@ export default function SheetGrid() {
         }}
         onMouseDown={(e) => {
           if (e.button !== 0) return // Left click only
-          /* when double-click happens the onDoubleClick handler will handle
-             editing – do not run range-select logic here */
-          if (e.detail === 2) return
+          /* When this is the second click of a double-click, start editing
+             immediately instead of falling through to range-select logic. */
+          if (e.detail === 2) {
+            selectCell(rowIndex, columnIndex)
+            startEdit(addr)
+            return
+          }
           
           if (e.shiftKey) {
             // Extend selection from current position
