@@ -7,6 +7,7 @@ import classNames from 'classnames'
 import { useStore } from '../store'
 import { columnIndexToLabel, makeCellAddress, parseCellAddress } from '../utils/cellAddresses'
 import { evaluateDisplay, isFormula } from '../formula'
+import { Sheet } from '../types'
 
 const ROWS = 1000
 const COLS = 100
@@ -43,7 +44,7 @@ function measureTextWidth(text: string): number {
 // data object fed into each virtualised cell so it always receives
 // the latest state without relying on stale closures
 type GridData = {
-  sheet: ReturnType<typeof useStore>['sheet']
+  sheet: Sheet
   selection: ReturnType<typeof useStore>['selection']
   editing: ReturnType<typeof useStore>['editing']
   selectCell: (r: number, c: number) => void
