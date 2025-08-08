@@ -3,6 +3,11 @@
   --header-bg: #f7f7f7;
   --header-fg: #555;
   --selected: #4a90e2;
+  /* reference highlight palette (cycled while typing formulas) */
+  --ref1: #4a90e2;
+  --ref2: #27ae60;
+  --ref3: #af52de;
+  --ref4: #f5a623;
 }
 
 /* ------------------------------------------------------------------ */
@@ -226,6 +231,18 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   background-color: rgba(74, 144, 226, 0.06);
 }
 
+/* ------------------------------------------------------------------ */
+/* Cell reference highlights while editing a formula                  */
+/* ------------------------------------------------------------------ */
+.cell--ref-1 { box-shadow: inset 0 0 0 2px var(--ref1); }
+.cell--ref-2 { box-shadow: inset 0 0 0 2px var(--ref2); }
+.cell--ref-3 { box-shadow: inset 0 0 0 2px var(--ref3); }
+.cell--ref-4 { box-shadow: inset 0 0 0 2px var(--ref4); }
+.cell--ref-1,
+.cell--ref-2,
+.cell--ref-3,
+.cell--ref-4 { position: relative; } /* keep above grid bg but below overlay */
+
 .toolbar .version-badge {
   font-size: 11px;
   line-height: 1;
@@ -293,6 +310,24 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   position: relative;
   z-index: 1;              /* ensure caret renders above overlay */
 }
+
+/* ------------------------------------------------------------------ */
+/* Formula ghost overlay + coloured reference text                    */
+/* ------------------------------------------------------------------ */
+.cell .formula-ghost {
+  position: absolute;
+  inset: 0;
+  padding: 0 6px;
+  white-space: pre;
+  color: inherit;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cell--editing .cell-input { color: transparent; }
+.formula-ref.ref-1 { color: var(--ref1); font-weight: 600; }
+.formula-ref.ref-2 { color: var(--ref2); font-weight: 600; }
+.formula-ref.ref-3 { color: var(--ref3); font-weight: 600; }
+.formula-ref.ref-4 { color: var(--ref4); font-weight: 600; }
 
 /* ------------------------------------------------------------------ */
 /* Toolbar version badge                                              */
