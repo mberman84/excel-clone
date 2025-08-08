@@ -8,12 +8,11 @@ import classNames from 'classnames'
 // ---------------------------------------------------------------------------
 // Build / release identifier
 // ---------------------------------------------------------------------------
-const VERSION = 'v2025.08.07-8'
+const VERSION = 'v2025.08.08-1'
 
 export default function App() {
   const {
     workbook,
-    sheet,
     selection,
     editing,
     selectCell,
@@ -35,7 +34,6 @@ export default function App() {
     setActiveSheet,
   } = useStore(s => ({
     workbook: s.workbook,
-    sheet: s.sheet,
     selection: s.selection,
     editing: s.editing,
     selectCell: s.selectCell,
@@ -58,6 +56,9 @@ export default function App() {
     deleteSheet: s.deleteSheet,
     setActiveSheet: s.setActiveSheet,
   }))
+
+  // Derive the active sheet reactively from the workbook
+  const sheet = useMemo(() => workbook.sheets[workbook.activeIndex], [workbook])
 
   const selectedAddr = useMemo(() => {
     if (selection.row <= 0 || selection.col <= 0) return null

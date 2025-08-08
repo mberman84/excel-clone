@@ -33,7 +33,6 @@ function emptyWorkbook(): Workbook {
 
 type State = {
   workbook: Workbook
-  sheet: Sheet // Always points to the active sheet for compatibility
   selection: { row: number; col: number }
   editing: { addr: string | null; draft: string }
   past: Workbook[]
@@ -154,11 +153,6 @@ function loadLocal(): Workbook | null {
 
 export const useStore = create<State>((set, get) => ({
   workbook: loadLocal() || emptyWorkbook(),
-  get sheet() {
-    // Always return the active sheet
-    const { workbook } = get()
-    return workbook.sheets[workbook.activeIndex]
-  },
   selection: { row: 1, col: 1 },
   editing: { addr: null, draft: '' },
   past: [],
@@ -252,7 +246,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   startEdit: (addr) => {
-    const { sheet } = get()
+    const { workbook } = get()
+    const sheet = workbook.sheets[workbook.activeIndex]
     set({ editing: { addr, draft: sheet.cells[addr]?.value ?? '' } })
   },
   
@@ -488,7 +483,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   getUsedRange: () => {
-    const { sheet } = get()
+    const { workbook } = get()
+    const sheet = workbook.sheets[workbook.activeIndex]
     let maxRow = 0, maxCol = 0
     
     for (const addr of Object.keys(sheet.cells)) {
@@ -506,7 +502,8 @@ export const useStore = create<State>((set, get) => ({
   },
 
   toAOA: () => {
-    const { sheet, getUsedRange } = get()
+    const { workbook, getUsedRange } = get()
+    const sheet = workbook.sheets[workbook.activeIndex]
     const { maxRow, maxCol } = getUsedRange()
     const arr: (string | number)[][] = []
     

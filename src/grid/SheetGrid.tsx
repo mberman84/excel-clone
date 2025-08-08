@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect, useState } from 'react'
+import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react'
 import {
   VariableSizeGrid as Grid,
   GridChildComponentProps,
@@ -57,10 +57,10 @@ type GridData = {
 
 export default function SheetGrid() {
   const { 
-    sheet, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
+    workbook, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
     setColWidth, setRowHeight, getUsedRange
   } = useStore(s => ({
-    sheet: s.sheet,
+    workbook: s.workbook,
     selection: s.selection,
     editing: s.editing,
     selectCell: s.selectCell,
@@ -72,6 +72,9 @@ export default function SheetGrid() {
     setRowHeight: s.setRowHeight,
     getUsedRange: s.getUsedRange,
   }))
+
+  // Derive the active sheet reactively from the workbook
+  const sheet = useMemo(() => workbook.sheets[workbook.activeIndex], [workbook])
 
   const gridRef = useRef<any>(null)
 
