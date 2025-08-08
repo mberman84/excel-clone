@@ -565,7 +565,6 @@ export default function SheetGrid() {
         onDoubleClick={(e) => {
           e.preventDefault()
           /* explicit double-click editing per requirements */
-          selectCell(rowIndex, columnIndex)
           startEdit(addr)
         }}
         onMouseDown={(e) => {
