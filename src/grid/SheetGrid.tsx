@@ -48,12 +48,18 @@ function parseFormulaReferences(draft: string): {
   refMap: Map<string, number>, 
   ghostHTML: string 
 } {
+  // Basic HTML escaper to prevent injection / malformed markup
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, c => (
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c]
+    ));
+
   // Default empty result
   const refMap = new Map<string, number>();
   
   // If not a formula, return empty result
   if (!draft.startsWith('=')) {
-    return { refMap, ghostHTML: draft };
+    return { refMap, ghostHTML: esc(draft) };
   }
   
   // Find all cell references (A1, $A$1) and ranges (A1:B3)
@@ -71,7 +77,7 @@ function parseFormulaReferences(draft: string): {
     
     // Add text before this reference
     if (startIndex > lastIndex) {
-      parts.push(draft.substring(lastIndex, startIndex));
+      parts.push(esc(draft.substring(lastIndex, startIndex)));
     }
     
     // Check if it's a range (contains :)
@@ -91,10 +97,10 @@ function parseFormulaReferences(draft: string): {
         colorIndex = colorIndex % 4 + 1;
         
         // Add the highlighted range to the HTML
-        parts.push(`<span class="formula-ref ref-${refClass}">${ref}</span>`);
+        parts.push(`<span class="formula-ref ref-${refClass}">${esc(ref)}</span>`);
       } catch (e) {
         // If range expansion fails, just add the text
-        parts.push(ref);
+        parts.push(esc(ref));
       }
     } else {
       try {
@@ -109,10 +115,10 @@ function parseFormulaReferences(draft: string): {
         colorIndex = colorIndex % 4 + 1;
         
         // Add the highlighted cell reference to the HTML
-        parts.push(`<span class="formula-ref ref-${refClass}">${ref}</span>`);
+        parts.push(`<span class="formula-ref ref-${refClass}">${esc(ref)}</span>`);
       } catch (e) {
         // If parsing fails, just add the text
-        parts.push(ref);
+        parts.push(esc(ref));
       }
     }
     
@@ -121,7 +127,7 @@ function parseFormulaReferences(draft: string): {
   
   // Add any remaining text
   if (lastIndex < draft.length) {
-    parts.push(draft.substring(lastIndex));
+    parts.push(esc(draft.substring(lastIndex)));
   }
   
   return {
