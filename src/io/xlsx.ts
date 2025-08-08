@@ -21,6 +21,18 @@ export function exportToCSV(filename: string, aoa: (string | number)[][]) {
   URL.revokeObjectURL(url)
 }
 
+export function exportWorkbookToXLSX(filename: string, sheets: { name: string; data: (string | number)[][] }[]) {
+  const wb = XLSX.utils.book_new()
+  
+  sheets.forEach((sheet, index) => {
+    const ws = XLSX.utils.aoa_to_sheet(sheet.data)
+    const sheetName = sheet.name || `Sheet ${index + 1}`
+    XLSX.utils.book_append_sheet(wb, ws, sheetName)
+  })
+  
+  XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : filename + '.xlsx')
+}
+
 export async function importFromFile(file: File): Promise<(string | number)[][]> {
   const ext = file.name.toLowerCase().split('.').pop() || ''
   if (ext === 'csv') {

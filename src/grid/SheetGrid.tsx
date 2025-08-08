@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect, useState } from 'react'
+import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react'
 import {
   VariableSizeGrid as Grid,
   GridChildComponentProps,
@@ -7,6 +7,7 @@ import classNames from 'classnames'
 import { useStore } from '../store'
 import { columnIndexToLabel, makeCellAddress, parseCellAddress } from '../utils/cellAddresses'
 import { evaluateDisplay, isFormula } from '../formula'
+import { Sheet } from '../types'
 
 const ROWS = 1000
 const COLS = 100
@@ -43,7 +44,7 @@ function measureTextWidth(text: string): number {
 // data object fed into each virtualised cell so it always receives
 // the latest state without relying on stale closures
 type GridData = {
-  sheet: ReturnType<typeof useStore>['sheet']
+  sheet: Sheet
   selection: ReturnType<typeof useStore>['selection']
   editing: ReturnType<typeof useStore>['editing']
   selectCell: (r: number, c: number) => void
@@ -57,10 +58,10 @@ type GridData = {
 
 export default function SheetGrid() {
   const { 
-    sheet, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
+    workbook, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
     setColWidth, setRowHeight, getUsedRange
   } = useStore(s => ({
-    sheet: s.sheet,
+    workbook: s.workbook,
     selection: s.selection,
     editing: s.editing,
     selectCell: s.selectCell,
@@ -72,6 +73,9 @@ export default function SheetGrid() {
     setRowHeight: s.setRowHeight,
     getUsedRange: s.getUsedRange,
   }))
+
+  // Derive the active sheet reactively from the workbook
+  const sheet = useMemo(() => workbook.sheets[workbook.activeIndex], [workbook])
 
   const gridRef = useRef<any>(null)
 
@@ -356,6 +360,8 @@ export default function SheetGrid() {
       */}
       <Grid
         ref={gridRef}
+        /* ensure react-window’s internal cache resets when switching sheets */
+        key={sheet.id}
         columnCount={COLS + 1}
         columnWidth={(index: number) =>
           index === 0
