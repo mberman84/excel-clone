@@ -398,9 +398,9 @@ export default function SheetGrid() {
               });
             }
           }}
-          onMouseEnter={() => {
+          onMouseEnter={(e) => {
             // Update selection when dragging
-            if (dragState?.type === 'col') {
+            if (dragState?.type === 'col' && (e.buttons & 1) !== 0) {
               selectRange(
                 1, 
                 Math.min(dragState.anchorCol, columnIndex),
@@ -452,9 +452,9 @@ export default function SheetGrid() {
               });
             }
           }}
-          onMouseEnter={() => {
+          onMouseEnter={(e) => {
             // Update selection when dragging
-            if (dragState?.type === 'row') {
+            if (dragState?.type === 'row' && (e.buttons & 1) !== 0) {
               selectRange(
                 Math.min(dragState.anchorRow, rowIndex),
                 1,
@@ -566,6 +566,9 @@ export default function SheetGrid() {
         }}
         onMouseDown={(e) => {
           if (e.button !== 0) return // Left click only
+          /* when double-click happens the onDoubleClick handler will handle
+             editing – do not run range-select logic here */
+          if (e.detail === 2) return
           
           if (e.shiftKey) {
             // Extend selection from current position
@@ -586,14 +589,11 @@ export default function SheetGrid() {
           }
           
           /* if this was the second click of a double-click, start editing immediately */
-          if (e.detail === 2) {
-            e.preventDefault()
-            startEdit(addr)
-          }
+          /* (handled in onDoubleClick now) */
         }}
-        onMouseEnter={() => {
+        onMouseEnter={(e) => {
           // Update selection when dragging cells
-          if (dragState?.type === 'cells') {
+          if (dragState?.type === 'cells' && (e.buttons & 1) !== 0) {
             setSelectionEnd(rowIndex, columnIndex);
           }
         }}
