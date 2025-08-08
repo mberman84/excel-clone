@@ -8,9 +8,38 @@ import classNames from 'classnames'
 // ---------------------------------------------------------------------------
 // Build / release identifier
 // ---------------------------------------------------------------------------
-const VERSION = 'v2025.08.08-1'
+const VERSION = 'v2025.08.08-2'
+
+// ---------------------------------------------------------------------------
+// Theme helpers
+// ---------------------------------------------------------------------------
+const THEME_KEY = 'excel-clone/theme'
+const getInitialTheme = (): 'light' | 'dark' => {
+  try {
+    const stored = localStorage.getItem(THEME_KEY)
+    if (stored === 'light' || stored === 'dark') return stored
+  } catch {}
+  // fallback to prefers-color-scheme
+  return window.matchMedia &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light'
+}
 
 export default function App() {
+  /* --------------------------------------------------------------------- */
+  /* Theme state                                                           */
+  /* --------------------------------------------------------------------- */
+  const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme)
+
+  // Apply / persist on change
+  useEffect(() => {
+    const el = document.documentElement
+    if (theme === 'dark') el.classList.add('theme-dark')
+    else el.classList.remove('theme-dark')
+    try { localStorage.setItem(THEME_KEY, theme) } catch {}
+  }, [theme])
+
   const {
     workbook,
     selection,
@@ -153,6 +182,13 @@ export default function App() {
             />
           </label>
         </div>
+        {/* dark-mode toggle */}
+        <button
+          className="btn"
+          onClick={() => setTheme(t => (t === 'light' ? 'dark' : 'light'))}
+        >
+          {theme === 'light' ? 'Dark mode' : 'Light mode'}
+        </button>
         {/* build version shown for easy cache-busting verification */}
         <span className="version-badge">{VERSION}</span>
       </div>
