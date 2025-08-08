@@ -8,7 +8,7 @@ import classNames from 'classnames'
 // ---------------------------------------------------------------------------
 // Build / release identifier
 // ---------------------------------------------------------------------------
-const VERSION = 'v2025.08.08-3'
+const VERSION = 'v2025.08.08-4'
 
 // ---------------------------------------------------------------------------
 // Theme helpers
@@ -190,7 +190,7 @@ export default function App() {
           </button>
         </div>
 
-        <label className="color-picker">
+        <label className="btn color-picker">
           Text{' '}
           <input
             type="color"
@@ -200,7 +200,7 @@ export default function App() {
             }
           />
         </label>
-        <label className="color-picker">
+        <label className="btn color-picker">
           Fill{' '}
           <input
             type="color"

@@ -138,9 +138,6 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 6px;
 }
 
 .formula-bar { display: flex; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid var(--border); }
@@ -348,6 +345,12 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
 /* ------------------------------------------------------------------ */
 /* Bottom Tab Bar + Sheet Tabs                                        */
 /* ------------------------------------------------------------------ */
+/* ensure toolbar picker inherits dark button styling */
+.theme-dark .toolbar .color-picker {
+  background: #161a22;
+  border-color: var(--border);
+  color: #e6e8eb;
+}
 
 .tab-bar {
   position: sticky;
