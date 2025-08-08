@@ -563,19 +563,16 @@ export default function SheetGrid() {
           [refClass]: !!refClass,
         })}
         onDoubleClick={(e) => {
-          e.preventDefault()
-          /* explicit double-click editing per requirements */
-          startEdit(addr)
+          e.preventDefault();
+          e.stopPropagation();
+          /* explicit double-click editing per previous working behaviour */
+          selectCell(rowIndex, columnIndex);
+          startEdit(addr);
         }}
         onMouseDown={(e) => {
           if (e.button !== 0) return // Left click only
-          /* When this is the second click of a double-click, start editing
-             immediately instead of falling through to range-select logic. */
-          if (e.detail === 2) {
-            selectCell(rowIndex, columnIndex)
-            startEdit(addr)
-            return
-          }
+          /* Ignore the second mousedown of a double-click – let onDoubleClick handle editing */
+          if (e.detail === 2) return
           
           if (e.shiftKey) {
             // Extend selection from current position
