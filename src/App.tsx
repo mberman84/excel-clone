@@ -8,7 +8,7 @@ import classNames from 'classnames'
 // ---------------------------------------------------------------------------
 // Build / release identifier
 // ---------------------------------------------------------------------------
-const VERSION = 'v2025.08.08-2'
+const VERSION = 'v2025.08.08-3'
 
 // ---------------------------------------------------------------------------
 // Theme helpers
@@ -101,6 +101,18 @@ export default function App() {
     }
   }, [selectedAddr, editing.addr])
 
+  /* --------------------------------------------------------------------- */
+  /* Formatting state helpers                                              */
+  /* --------------------------------------------------------------------- */
+  const fmt = selectedAddr ? sheet.cells[selectedAddr]?.format : undefined
+  const isBold = !!fmt?.bold
+  const isItalic = !!fmt?.italic
+  const isUnderline = !!fmt?.underline
+  const textColorValue =
+    fmt?.textColor ?? (theme === 'dark' ? '#e6e8eb' : '#000000')
+  const fillColorValue =
+    fmt?.fillColor ?? (theme === 'dark' ? '#0f1115' : '#ffffff')
+
   // Global key to start editing by typing
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -149,19 +161,55 @@ export default function App() {
       <div className="toolbar">
         {/* format buttons */}
         <div className="segmented">
-          <button className="btn" onClick={() => selectedAddr && toggleFormat(selectedAddr, 'bold')}>
+          <button
+            className="btn"
+            aria-pressed={isBold}
+            onClick={() =>
+              selectedAddr && toggleFormat(selectedAddr, 'bold')
+            }
+          >
             <b>B</b>
           </button>
-          <button className="btn" onClick={() => selectedAddr && toggleFormat(selectedAddr, 'italic')}>
+          <button
+            className="btn"
+            aria-pressed={isItalic}
+            onClick={() =>
+              selectedAddr && toggleFormat(selectedAddr, 'italic')
+            }
+          >
             <i>I</i>
           </button>
-          <button className="btn" onClick={() => selectedAddr && toggleFormat(selectedAddr, 'underline')}>
+          <button
+            className="btn"
+            aria-pressed={isUnderline}
+            onClick={() =>
+              selectedAddr && toggleFormat(selectedAddr, 'underline')
+            }
+          >
             <u>U</u>
           </button>
         </div>
 
-        <label className="color-picker">Text <input type="color" onChange={(e) => selectedAddr && setTextColor(selectedAddr, e.target.value)} /></label>
-        <label className="color-picker">Fill <input type="color" onChange={(e) => selectedAddr && setFillColor(selectedAddr, e.target.value)} /></label>
+        <label className="color-picker">
+          Text{' '}
+          <input
+            type="color"
+            value={textColorValue}
+            onChange={(e) =>
+              selectedAddr && setTextColor(selectedAddr, e.target.value)
+            }
+          />
+        </label>
+        <label className="color-picker">
+          Fill{' '}
+          <input
+            type="color"
+            value={fillColorValue}
+            onChange={(e) =>
+              selectedAddr && setFillColor(selectedAddr, e.target.value)
+            }
+          />
+        </label>
         <span className="spacer" />
         {/* undo / redo */}
         <div className="segmented">

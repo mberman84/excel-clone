@@ -40,9 +40,35 @@
 .theme-dark .segmented { border-color: var(--border); }
 .theme-dark .segmented .btn + .btn { border-left-color: var(--border); }
 
+/* stronger hover for dark buttons */
+.theme-dark .btn:hover { background: #232a36; }
+
+/* segmented container background for clarity */
+.theme-dark .segmented { background: #12161f; }
+
+/* toggled / pressed state -------------------------------------------------- */
+.btn[aria-pressed='true'] {
+  background: rgba(74, 144, 226, 0.12);
+  border-color: var(--selected);
+  color: #123a6b;
+}
+.segmented .btn[aria-pressed='true'] + .btn { border-left-color: var(--selected); }
+
+.theme-dark .btn[aria-pressed='true'] {
+  background: rgba(74, 144, 226, 0.18);
+  border-color: var(--selected);
+  color: #dfeaff;
+}
+.theme-dark .segmented .btn[aria-pressed='true'] + .btn { border-left-color: var(--selected); }
+
 /* Color picker ----------------------------------------------------- */
 .theme-dark .color-picker { background: #161a22; border-color: var(--border); }
-.theme-dark .color-picker input[type=color] { border-color: var(--border); }
+/* ensure label text readable in dark mode */
+.theme-dark .color-picker { color: var(--header-fg); }
+.theme-dark .color-picker input[type=color] {
+  border-color: var(--border);
+  background: #0f1115;
+}
 
 /* Formula bar ------------------------------------------------------ */
 .theme-dark .formula-bar { border-bottom-color: var(--border); }
