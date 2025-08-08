@@ -356,6 +356,8 @@ export default function SheetGrid() {
       */}
       <Grid
         ref={gridRef}
+        /* ensure react-window’s internal cache resets when switching sheets */
+        key={sheet.id}
         columnCount={COLS + 1}
         columnWidth={(index: number) =>
           index === 0
