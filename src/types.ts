@@ -13,4 +13,14 @@ export type Cell = {
 
 export type Sheet = {
   cells: Record<string, Cell>
+  /**
+   * Optional per-column widths (px). Index 0 => column A, etc.
+   * Undefined index => default width from grid component.
+   */
+  colWidths?: number[]
+  /**
+   * Optional per-row heights (px). Index 0 => row 1, etc.
+   * Undefined index => default height from grid component.
+   */
+  rowHeights?: number[]
 }

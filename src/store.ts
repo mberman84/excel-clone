@@ -4,8 +4,12 @@ import { makeCellAddress, parseCellAddress } from './utils/cellAddresses'
 import { evaluateDisplay, isFormula } from './formula'
 
 const STORAGE_KEY = 'excel-clone/sheet/v1'
+export const DEFAULT_COL_WIDTH = 120
+export const DEFAULT_ROW_HEIGHT = 28
 
-function emptySheet(): Sheet { return { cells: {} } }
+function emptySheet(): Sheet {
+  return { cells: {}, colWidths: [], rowHeights: [] }
+}
 
 type State = {
   sheet: Sheet
@@ -22,6 +26,8 @@ type State = {
   toggleFormat: (addr: string, key: keyof CellFormat) => void
   setTextColor: (addr: string, color: string) => void
   setFillColor: (addr: string, color: string) => void
+  setColWidth: (col: number, px: number) => void
+  setRowHeight: (row: number, px: number) => void
   clearSheet: () => void
   undo: () => void
   redo: () => void
@@ -32,7 +38,11 @@ type State = {
 }
 
 function cloneSheet(s: Sheet): Sheet {
-  return { cells: { ...s.cells } }
+  return {
+    cells: { ...s.cells },
+    colWidths: s.colWidths ? [...s.colWidths] : [],
+    rowHeights: s.rowHeights ? [...s.rowHeights] : [],
+  }
 }
 
 function saveLocal(s: Sheet) {
@@ -45,12 +55,21 @@ function loadLocal(): Sheet | null {
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object' || !parsed.cells) return null
-    return { cells: parsed.cells }
+    return {
+      cells: parsed.cells,
+      colWidths: Array.isArray(parsed.colWidths) ? parsed.colWidths : [],
+      rowHeights: Array.isArray(parsed.rowHeights) ? parsed.rowHeights : [],
+    }
   } catch { return null }
 }
 
 export const useStore = create<State>((set, get) => ({
-  sheet: loadLocal() ?? emptySheet(),
+  sheet: (() => {
+    const loaded = loadLocal() ?? emptySheet()
+    loaded.colWidths ||= []
+    loaded.rowHeights ||= []
+    return loaded
+  })(),
   selection: { row: 1, col: 1 },
   editing: { addr: null, draft: '' },
   past: [],
@@ -122,6 +141,32 @@ export const useStore = create<State>((set, get) => ({
     const next: Sheet = cloneSheet(sheet)
     const prev = next.cells[addr] ?? { value: '' }
     next.cells[addr] = { ...prev, format: { ...(prev.format ?? {}), fillColor: color } }
+    const newPast = [...past, cloneSheet(sheet)].slice(-50)
+    saveLocal(next)
+    set({ sheet: next, past: newPast, future: [] })
+  },
+
+  setColWidth: (col, px) => {
+    if (col < 0) return
+    const min = 40
+    const width = Math.max(min, px)
+    const { sheet, past } = get()
+    const next = cloneSheet(sheet)
+    if (!next.colWidths) next.colWidths = []
+    next.colWidths[col] = width
+    const newPast = [...past, cloneSheet(sheet)].slice(-50)
+    saveLocal(next)
+    set({ sheet: next, past: newPast, future: [] })
+  },
+
+  setRowHeight: (row, px) => {
+    if (row < 0) return
+    const min = 18
+    const height = Math.max(min, px)
+    const { sheet, past } = get()
+    const next = cloneSheet(sheet)
+    if (!next.rowHeights) next.rowHeights = []
+    next.rowHeights[row] = height
     const newPast = [...past, cloneSheet(sheet)].slice(-50)
     saveLocal(next)
     set({ sheet: next, past: newPast, future: [] })

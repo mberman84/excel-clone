@@ -10,28 +10,127 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
 
 .app { display: flex; flex-direction: column; height: 100%; }
 .toolbar {
-  display: flex; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 .toolbar button { padding: 4px 8px; }
 .toolbar .spacer { flex: 1; }
-.toolbar .import-btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; }
-.toolbar .import-btn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.toolbar .color-picker { display: inline-flex; align-items: center; gap: 6px; }
+.toolbar .color-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
 
 .formula-bar { display: flex; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid var(--border); }
+/* Modern button system                                               */
+/* ------------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+.btn:hover { background: #fafafa; }
+.btn:active { background: #f0f0f0; box-shadow: inset 0 0 3px rgba(0,0,0,0.15); }
+.btn:focus-visible { outline: 2px solid var(--selected); outline-offset: 2px; }
+
+/* segmented control */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.segmented .btn {
+  border: none;
+  border-radius: 0;
+  padding: 6px 14px;
+}
+.segmented .btn + .btn { border-left: 1px solid var(--border); }
+
+/* import button re-uses .btn and hides file input */
+.import-btn { position: relative; overflow: hidden; }
+.import-btn input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* colour picker square */
+.color-picker input[type=color] {
+  -webkit-appearance: none;
+  border: 1px solid var(--border);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.color-picker input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.color-picker input[type=color]::-webkit-color-swatch {
+  border: none; border-radius: 3px;
+}
+
+/* ------------------------------------------------------------------ */
 .formula-bar .addr { width: 80px; padding: 4px 6px; border: 1px solid var(--border); background: var(--header-bg); color: var(--header-fg); text-align: center; border-radius: 4px; }
 .formula-bar input { flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; }
 
 .sheet { flex: 1; overflow: hidden; }
 
-.cell { display: flex; align-items: center; padding: 0 8px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.cell--header { background: var(--header-bg); color: var(--header-fg); font-weight: 600; }
+.cell {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.cell--header {
+  background: var(--header-bg);
+  color: var(--header-fg);
+  font-weight: 600;
+}
 .cell--selected {
   /* clearer selection ring + subtle fill */
   outline: none;
   box-shadow: inset 0 0 0 2px var(--selected);
   background-color: rgba(74, 144, 226, 0.06);
 }
+
+.toolbar .version-badge {
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(4px);
+  color: var(--header-fg);
+}
+
 .cell-input { width: 100%; height: 100%; border: none; outline: none; font: inherit; padding: 0 6px; background: #fff; }
 
 /* ------------------------------------------------------------------ */
@@ -102,4 +201,37 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   border-radius: 999px;
   background: var(--header-bg);
   color: var(--header-fg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Row / Column Resize Handles                                        */
+/* ------------------------------------------------------------------ */
+
+.col-resize-handle,
+.row-resize-handle {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+}
+
+.col-resize-handle {
+  top: 0;
+  right: -3px;              /* extend slightly past border for easy grab */
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.row-resize-handle {
+  left: 0;
+  bottom: -3px;             /* extend slightly past border for easy grab */
+  height: 6px;
+  width: 100%;
+  cursor: row-resize;
+}
+
+/* subtle hover cue */
+.col-resize-handle:hover,
+.row-resize-handle:hover {
+  background: rgba(0, 0, 0, 0.05);
 }

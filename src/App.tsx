@@ -7,7 +7,7 @@ import { exportToCSV, exportToXLSX, importFromFile } from './io/xlsx'
 // ---------------------------------------------------------------------------
 // Build / release identifier
 // ---------------------------------------------------------------------------
-const VERSION = 'v2025.08.07-5'
+const VERSION = 'v2025.08.07-7'
 
 export default function App() {
   const { sheet, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit, toggleFormat, setTextColor, setFillColor, undo, redo, toAOA, fromAOA } = useStore(s => ({
@@ -73,18 +73,41 @@ export default function App() {
   return (
     <div className="app">
       <div className="toolbar">
-        <button onClick={() => selectedAddr && toggleFormat(selectedAddr, 'bold')}><b>B</b></button>
-        <button onClick={() => selectedAddr && toggleFormat(selectedAddr, 'italic')}><i>I</i></button>
-        <button onClick={() => selectedAddr && toggleFormat(selectedAddr, 'underline')}><u>U</u></button>
+        {/* format buttons */}
+        <div className="segmented">
+          <button className="btn" onClick={() => selectedAddr && toggleFormat(selectedAddr, 'bold')}>
+            <b>B</b>
+          </button>
+          <button className="btn" onClick={() => selectedAddr && toggleFormat(selectedAddr, 'italic')}>
+            <i>I</i>
+          </button>
+          <button className="btn" onClick={() => selectedAddr && toggleFormat(selectedAddr, 'underline')}>
+            <u>U</u>
+          </button>
+        </div>
+
         <label className="color-picker">Text <input type="color" onChange={(e) => selectedAddr && setTextColor(selectedAddr, e.target.value)} /></label>
         <label className="color-picker">Fill <input type="color" onChange={(e) => selectedAddr && setFillColor(selectedAddr, e.target.value)} /></label>
         <span className="spacer" />
-        <button onClick={undo}>Undo</button>
-        <button onClick={redo}>Redo</button>
+        {/* undo / redo */}
+        <div className="segmented">
+          <button className="btn" onClick={undo}>Undo</button>
+          <button className="btn" onClick={redo}>Redo</button>
+        </div>
         <span className="spacer" />
-        <button onClick={() => exportToCSV('sheet.csv', toAOA())}>Export CSV</button>
-        <button onClick={() => exportToXLSX('sheet.xlsx', toAOA())}>Export XLSX</button>
-        <label className="import-btn">Import<input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files && e.target.files[0] && onImport(e.target.files[0])} /></label>
+        {/* file actions */}
+        <div className="segmented">
+          <button className="btn" onClick={() => exportToCSV('sheet.csv', toAOA())}>Export CSV</button>
+          <button className="btn" onClick={() => exportToXLSX('sheet.xlsx', toAOA())}>Export XLSX</button>
+          <label className="import-btn btn">
+            Import
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={(e) => e.target.files && e.target.files[0] && onImport(e.target.files[0])}
+            />
+          </label>
+        </div>
         {/* build version shown for easy cache-busting verification */}
         <span className="version-badge">{VERSION}</span>
       </div>
