@@ -136,6 +136,13 @@ function parseFormulaReferences(draft: string): {
   };
 }
 
+// Type for tracking drag state
+type DragState = {
+  type: 'cells' | 'row' | 'col';
+  anchorRow: number;
+  anchorCol: number;
+} | null;
+
 // data object fed into each virtualised cell so it always receives
 // the latest state without relying on stale closures
 type GridData = {
@@ -143,6 +150,8 @@ type GridData = {
   selection: ReturnType<typeof useStore>['selection']
   editing: ReturnType<typeof useStore>['editing']
   selectCell: (r: number, c: number) => void
+  setSelectionEnd: (r: number, c: number) => void
+  selectRange: (sr: number, sc: number, er: number, ec: number) => void
   startEdit: (addr: string) => void
   setDraft: (v: string) => void
   commitEdit: () => void
@@ -151,12 +160,14 @@ type GridData = {
   setRowHeight: (r: number, px: number) => void
   refMap: Map<string, number>
   ghostHTML: string
+  dragState: DragState
+  setDragState: (state: DragState) => void
 }
 
 export default function SheetGrid() {
   const { 
     workbook, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
-    setColWidth, setRowHeight, getUsedRange
+    setColWidth, setRowHeight, getUsedRange, setSelectionEnd, selectRange
   } = useStore(s => ({
     workbook: s.workbook,
     selection: s.selection,
@@ -169,6 +180,8 @@ export default function SheetGrid() {
     setColWidth: s.setColWidth,
     setRowHeight: s.setRowHeight,
     getUsedRange: s.getUsedRange,
+    setSelectionEnd: s.setSelectionEnd,
+    selectRange: s.selectRange,
   }))
 
   // Derive the active sheet reactively from the workbook
@@ -178,6 +191,21 @@ export default function SheetGrid() {
   const { refMap, ghostHTML } = useMemo(() => {
     return parseFormulaReferences(editing.draft);
   }, [editing.draft]);
+
+  // Track drag state
+  const [dragState, setDragState] = useState<DragState>(null);
+
+  // Clear drag state on document mouseup
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setDragState(null);
+    };
+    
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   const gridRef = useRef<any>(null)
 
@@ -264,6 +292,8 @@ export default function SheetGrid() {
       selection,
       editing,
       selectCell,
+      setSelectionEnd,
+      selectRange,
       startEdit,
       setDraft,
       commitEdit,
@@ -271,7 +301,9 @@ export default function SheetGrid() {
       setColWidth,
       setRowHeight,
       refMap,
-      ghostHTML
+      ghostHTML,
+      dragState,
+      setDragState
     } = data
 
     const isHeaderRow = rowIndex === 0
@@ -340,7 +372,44 @@ export default function SheetGrid() {
     
     if (isHeaderRow) {
       return (
-        <div style={style} className={classes}>
+        <div 
+          style={style} 
+          className={classes}
+          onMouseDown={(e) => {
+            // Ignore if clicking on resize handle
+            if ((e.target as HTMLElement).closest('.col-resize-handle')) return;
+            if (e.button !== 0) return; // Left click only
+            
+            if (e.shiftKey) {
+              // Extend selection from current position
+              selectRange(1, selection.col, ROWS, columnIndex);
+              setDragState({
+                type: 'col',
+                anchorRow: 1,
+                anchorCol: selection.col
+              });
+            } else {
+              // Select entire column
+              selectRange(1, columnIndex, ROWS, columnIndex);
+              setDragState({
+                type: 'col',
+                anchorRow: 1,
+                anchorCol: columnIndex
+              });
+            }
+          }}
+          onMouseEnter={() => {
+            // Update selection when dragging
+            if (dragState?.type === 'col') {
+              selectRange(
+                1, 
+                Math.min(dragState.anchorCol, columnIndex),
+                ROWS,
+                Math.max(dragState.anchorCol, columnIndex)
+              );
+            }
+          }}
+        >
           {columnIndexToLabel(columnIndex - 1)}
           <div 
             className="col-resize-handle"
@@ -357,7 +426,44 @@ export default function SheetGrid() {
     
     if (isHeaderCol) {
       return (
-        <div style={style} className={classes}>
+        <div 
+          style={style} 
+          className={classes}
+          onMouseDown={(e) => {
+            // Ignore if clicking on resize handle
+            if ((e.target as HTMLElement).closest('.row-resize-handle')) return;
+            if (e.button !== 0) return; // Left click only
+            
+            if (e.shiftKey) {
+              // Extend selection from current position
+              selectRange(selection.row, 1, rowIndex, COLS);
+              setDragState({
+                type: 'row',
+                anchorRow: selection.row,
+                anchorCol: 1
+              });
+            } else {
+              // Select entire row
+              selectRange(rowIndex, 1, rowIndex, COLS);
+              setDragState({
+                type: 'row',
+                anchorRow: rowIndex,
+                anchorCol: 1
+              });
+            }
+          }}
+          onMouseEnter={() => {
+            // Update selection when dragging
+            if (dragState?.type === 'row') {
+              selectRange(
+                Math.min(dragState.anchorRow, rowIndex),
+                1,
+                Math.max(dragState.anchorRow, rowIndex),
+                COLS
+              );
+            }
+          }}
+        >
           {rowIndex}
           <div 
             className="row-resize-handle"
@@ -373,7 +479,13 @@ export default function SheetGrid() {
     }
     
     const addr = makeCellAddress(columnIndex - 1, rowIndex - 1)
-    const isSelected = selection.row === rowIndex && selection.col === columnIndex
+    const isAnchorCell = selection.row === rowIndex && selection.col === columnIndex
+    const isInSelectionRange = (
+      rowIndex >= Math.min(selection.row, selection.endRow) &&
+      rowIndex <= Math.max(selection.row, selection.endRow) &&
+      columnIndex >= Math.min(selection.col, selection.endCol) &&
+      columnIndex <= Math.max(selection.col, selection.endCol)
+    )
     const isEditingHere = editing.addr === addr
     const cell = sheet.cells[addr]
     const display = cell ? (isFormula(cell.value) ? evaluateDisplay(addr, sheet) : cell.value) : ''
@@ -412,7 +524,8 @@ export default function SheetGrid() {
         <div
           style={styleMerged}
           className={classNames(classes, {
-            'cell--selected': isSelected,
+            'cell--selected': isAnchorCell,
+            'cell--in-range': isInSelectionRange && !isAnchorCell,
             'cell--editing': isEditingHere,
           })}
         >
@@ -440,7 +553,8 @@ export default function SheetGrid() {
       <div
         style={styleMerged}
         className={classNames(classes, {
-          'cell--selected': isSelected,
+          'cell--selected': isAnchorCell,
+          'cell--in-range': isInSelectionRange && !isAnchorCell,
           'cell--editing': isEditingHere,
           [refClass]: !!refClass,
         })}
@@ -451,13 +565,36 @@ export default function SheetGrid() {
           startEdit(addr)
         }}
         onMouseDown={(e) => {
-          if (e.button !== 0) return
-          /* always select on mouse down */
-          selectCell(rowIndex, columnIndex)
+          if (e.button !== 0) return // Left click only
+          
+          if (e.shiftKey) {
+            // Extend selection from current position
+            selectRange(selection.row, selection.col, rowIndex, columnIndex);
+            setDragState({
+              type: 'cells',
+              anchorRow: selection.row,
+              anchorCol: selection.col
+            });
+          } else {
+            // Start new selection
+            selectCell(rowIndex, columnIndex);
+            setDragState({
+              type: 'cells',
+              anchorRow: rowIndex,
+              anchorCol: columnIndex
+            });
+          }
+          
           /* if this was the second click of a double-click, start editing immediately */
           if (e.detail === 2) {
             e.preventDefault()
             startEdit(addr)
+          }
+        }}
+        onMouseEnter={() => {
+          // Update selection when dragging cells
+          if (dragState?.type === 'cells') {
+            setSelectionEnd(rowIndex, columnIndex);
           }
         }}
       >
@@ -495,6 +632,8 @@ export default function SheetGrid() {
           selection,
           editing,
           selectCell,
+          setSelectionEnd,
+          selectRange,
           startEdit,
           setDraft,
           commitEdit,
@@ -503,6 +642,8 @@ export default function SheetGrid() {
           setRowHeight,
           refMap,
           ghostHTML,
+          dragState,
+          setDragState,
         } as GridData}
       >
         {Cell}

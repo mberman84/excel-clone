@@ -254,7 +254,7 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   color: var(--header-fg);
 }
 
-.cell-input { width: 100%; height: 100%; border: none; outline: none; font: inherit; padding: 0 6px; background: #fff; }
+.cell-input { width: 100%; height: 100%; border: none; outline: none; font: inherit; padding: 0 8px; background: #fff; }
 
 /* ------------------------------------------------------------------ */
 /* Editing state & transitions                                        */
@@ -317,9 +317,13 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
 .cell .formula-ghost {
   position: absolute;
   inset: 0;
-  padding: 0 6px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;      /* vertical centering with input text */
   white-space: pre;
   color: inherit;
+  font: inherit;
+  line-height: normal;
   pointer-events: none;
   overflow: hidden;
 }
@@ -328,6 +332,13 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
 .formula-ref.ref-2 { color: var(--ref2); font-weight: 600; }
 .formula-ref.ref-3 { color: var(--ref3); font-weight: 600; }
 .formula-ref.ref-4 { color: var(--ref4); font-weight: 600; }
+
+/* ------------------------------------------------------------------ */
+/* Multi-cell range highlight                                         */
+/* ------------------------------------------------------------------ */
+.cell--in-range {
+  background-color: rgba(74, 144, 226, 0.08);
+}
 
 /* ------------------------------------------------------------------ */
 /* Toolbar version badge                                              */
