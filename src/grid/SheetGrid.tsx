@@ -520,6 +520,7 @@ export default function SheetGrid() {
     }, [isEditingHere])
 
     if (isEditingHere) {
+      const isFormulaEditing = editing.draft.startsWith('=')
       return (
         <div
           style={styleMerged}
@@ -527,6 +528,7 @@ export default function SheetGrid() {
             'cell--selected': isAnchorCell,
             'cell--in-range': isInSelectionRange && !isAnchorCell,
             'cell--editing': isEditingHere,
+            'cell--formula-editing': isFormulaEditing,
           })}
         >
           <input
@@ -541,10 +543,12 @@ export default function SheetGrid() {
               else if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
             }}
           />
-          <div 
-            className="formula-ghost" 
-            dangerouslySetInnerHTML={{ __html: ghostHTML }}
-          />
+          {isFormulaEditing && (
+            <div
+              className="formula-ghost"
+              dangerouslySetInnerHTML={{ __html: ghostHTML }}
+            />
+          )}
         </div>
       )
     }

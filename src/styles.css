@@ -327,7 +327,7 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   pointer-events: none;
   overflow: hidden;
 }
-.cell--editing .cell-input { color: transparent; }
+.cell--formula-editing .cell-input { color: transparent; }
 .formula-ref.ref-1 { color: var(--ref1); font-weight: 600; }
 .formula-ref.ref-2 { color: var(--ref2); font-weight: 600; }
 .formula-ref.ref-3 { color: var(--ref3); font-weight: 600; }
