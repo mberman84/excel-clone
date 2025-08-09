@@ -562,17 +562,16 @@ export default function SheetGrid() {
           'cell--editing': isEditingHere,
           [refClass]: !!refClass,
         })}
-        onDoubleClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          /* explicit double-click editing per previous working behaviour */
-          selectCell(rowIndex, columnIndex);
-          startEdit(addr);
-        }}
         onMouseDown={(e) => {
           if (e.button !== 0) return // Left click only
-          /* Ignore the second mousedown of a double-click – let onDoubleClick handle editing */
-          if (e.detail === 2) return
+          /* If this is the second click of a double-click, start editing immediately */
+          if (e.detail === 2) {
+            e.preventDefault();
+            e.stopPropagation();
+            selectCell(rowIndex, columnIndex);
+            startEdit(addr);
+            return;
+          }
           
           if (e.shiftKey) {
             // Extend selection from current position
@@ -591,10 +590,16 @@ export default function SheetGrid() {
               anchorCol: columnIndex
             });
           }
-          
-          /* if this was the second click of a double-click, start editing immediately */
-          /* (handled in onDoubleClick now) */
         }}
+        /* separate explicit double-click handler (outside of onMouseDown) */
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          selectCell(rowIndex, columnIndex);
+          startEdit(addr);
+        }}
+        /* if this was the second click of a double-click, start editing immediately */
+        /* (handled above) */
         onMouseEnter={(e) => {
           // Update selection when dragging cells
           if (dragState?.type === 'cells' && (e.buttons & 1) !== 0) {

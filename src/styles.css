@@ -218,6 +218,8 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   padding: 0 8px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  /* prevent accidental native text selection while not editing */
+  user-select: none;
 }
 .cell--header {
   background: var(--header-bg);
@@ -309,6 +311,8 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   background: transparent;
   position: relative;
   z-index: 1;              /* ensure caret renders above overlay */
+  /* allow normal text selection while editing */
+  user-select: text;
 }
 
 /* ------------------------------------------------------------------ */
