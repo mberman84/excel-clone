@@ -4,10 +4,11 @@ test('header dropdown opens and sorts', async ({ page }) => {
   await page.goto('/');
   
   // wait for grid
-  await expect(page.locator('.header-row')).toBeVisible();
+  await expect(page.locator('.sheet')).toBeVisible();
   
   // click first column header dropdown trigger (▼)
-  const trigger = page.locator('button.header-col-menu-trigger').first();
+  const trigger = page.locator('button.col-menu-trigger').first();
+  await expect(trigger).toBeVisible();
   await trigger.click();
   
   // expect menu visible
