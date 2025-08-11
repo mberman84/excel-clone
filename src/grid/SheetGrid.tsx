@@ -165,6 +165,148 @@ type GridData = {
   sortByColumn: (col: number, direction: 'asc' | 'desc') => void
 }
 
+// Dedicated component for column headers
+const HeaderCell = ({ 
+  columnIndex, 
+  style, 
+  classes, 
+  selection, 
+  selectRange, 
+  setDragState, 
+  dragState, 
+  columnIndexToLabel, 
+  startColumnResize, 
+  autoFitColumnWidth,
+  sortByColumn
+}: { 
+  columnIndex: number
+  style: React.CSSProperties
+  classes: string
+  selection: ReturnType<typeof useStore>['selection']
+  selectRange: (sr: number, sc: number, er: number, ec: number) => void
+  setDragState: (state: DragState) => void
+  dragState: DragState
+  columnIndexToLabel: (index: number) => string
+  startColumnResize: (e: React.MouseEvent) => void
+  autoFitColumnWidth: (columnIndex: number) => void
+  sortByColumn: (col: number, direction: 'asc' | 'desc') => void
+}) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
+  
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+  
+  return (
+    <div 
+      ref={headerRef}
+      style={style} 
+      className={classes}
+      onMouseDown={(e) => {
+        // Ignore if clicking on resize handle or menu
+        if ((e.target as HTMLElement).closest('.col-resize-handle') || 
+            (e.target as HTMLElement).closest('.col-menu-trigger') ||
+            (e.target as HTMLElement).closest('.col-menu')) return;
+        if (e.button !== 0) return; // Left click only
+        
+        if (e.shiftKey) {
+          // Extend selection from current position
+          selectRange(1, selection.col, ROWS, columnIndex);
+          setDragState({
+            type: 'col',
+            anchorRow: 1,
+            anchorCol: selection.col
+          });
+        } else {
+          // Select entire column
+          selectRange(1, columnIndex, ROWS, columnIndex);
+          setDragState({
+            type: 'col',
+            anchorRow: 1,
+            anchorCol: columnIndex
+          });
+        }
+      }}
+      onMouseEnter={(e) => {
+        // Update selection when dragging
+        if (dragState?.type === 'col' && (e.buttons & 1) !== 0) {
+          selectRange(
+            1, 
+            Math.min(dragState.anchorCol, columnIndex),
+            ROWS,
+            Math.max(dragState.anchorCol, columnIndex)
+          );
+        }
+      }}
+    >
+      {columnIndexToLabel(columnIndex - 1)}
+      
+      {/* Sort dropdown trigger */}
+      <button 
+        className="col-menu-trigger"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMenuOpen(!menuOpen);
+        }}
+      >
+        ▼
+      </button>
+      
+      {/* Sort dropdown menu */}
+      {menuOpen && (
+        <div className="col-menu">
+          <div 
+            className="col-menu-item"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              sortByColumn(columnIndex - 1, 'asc');
+              setMenuOpen(false);
+            }}
+          >
+            Sort A→Z
+          </div>
+          <div 
+            className="col-menu-item"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              sortByColumn(columnIndex - 1, 'desc');
+              setMenuOpen(false);
+            }}
+          >
+            Sort Z→A
+          </div>
+        </div>
+      )}
+      
+      <div 
+        className="col-resize-handle"
+        onMouseDown={startColumnResize}
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          autoFitColumnWidth(columnIndex);
+        }}
+      />
+    </div>
+  );
+};
+
 export default function SheetGrid() {
   const { 
     workbook, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
@@ -374,121 +516,21 @@ export default function SheetGrid() {
     }
     
     if (isHeaderRow) {
-      // Add state for column header dropdown menu
-      const [menuOpen, setMenuOpen] = useState(false);
-      const headerRef = useRef<HTMLDivElement>(null);
-      
-      // Close menu when clicking outside
-      useEffect(() => {
-        if (!menuOpen) return;
-        
-        const handleClickOutside = (e: MouseEvent) => {
-          if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
-            setMenuOpen(false);
-          }
-        };
-        
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-          document.removeEventListener('mousedown', handleClickOutside);
-        };
-      }, [menuOpen]);
-      
       return (
-        <div 
-          ref={headerRef}
-          style={style} 
-          className={classes}
-          onMouseDown={(e) => {
-            // Ignore if clicking on resize handle or menu
-            if ((e.target as HTMLElement).closest('.col-resize-handle') || 
-                (e.target as HTMLElement).closest('.col-menu-trigger') ||
-                (e.target as HTMLElement).closest('.col-menu')) return;
-            if (e.button !== 0) return; // Left click only
-            
-            if (e.shiftKey) {
-              // Extend selection from current position
-              selectRange(1, selection.col, ROWS, columnIndex);
-              setDragState({
-                type: 'col',
-                anchorRow: 1,
-                anchorCol: selection.col
-              });
-            } else {
-              // Select entire column
-              selectRange(1, columnIndex, ROWS, columnIndex);
-              setDragState({
-                type: 'col',
-                anchorRow: 1,
-                anchorCol: columnIndex
-              });
-            }
-          }}
-          onMouseEnter={(e) => {
-            // Update selection when dragging
-            if (dragState?.type === 'col' && (e.buttons & 1) !== 0) {
-              selectRange(
-                1, 
-                Math.min(dragState.anchorCol, columnIndex),
-                ROWS,
-                Math.max(dragState.anchorCol, columnIndex)
-              );
-            }
-          }}
-        >
-          {columnIndexToLabel(columnIndex - 1)}
-          
-          {/* Sort dropdown trigger */}
-          <button 
-            className="col-menu-trigger"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setMenuOpen(!menuOpen);
-            }}
-          >
-            ▼
-          </button>
-          
-          {/* Sort dropdown menu */}
-          {menuOpen && (
-            <div className="col-menu">
-              <div 
-                className="col-menu-item"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  sortByColumn(columnIndex - 1, 'asc');
-                  setMenuOpen(false);
-                }}
-              >
-                Sort A→Z
-              </div>
-              <div 
-                className="col-menu-item"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  sortByColumn(columnIndex - 1, 'desc');
-                  setMenuOpen(false);
-                }}
-              >
-                Sort Z→A
-              </div>
-            </div>
-          )}
-          
-          <div 
-            className="col-resize-handle"
-            onMouseDown={startColumnResize}
-            onDoubleClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              autoFitColumnWidth(columnIndex);
-            }}
-          />
-        </div>
-      )
+        <HeaderCell 
+          columnIndex={columnIndex}
+          style={style}
+          classes={classes}
+          selection={selection}
+          selectRange={selectRange}
+          setDragState={setDragState}
+          dragState={dragState}
+          columnIndexToLabel={columnIndexToLabel}
+          startColumnResize={startColumnResize}
+          autoFitColumnWidth={autoFitColumnWidth}
+          sortByColumn={sortByColumn}
+        />
+      );
     }
     
     if (isHeaderCol) {
