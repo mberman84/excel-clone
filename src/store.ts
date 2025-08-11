@@ -33,7 +33,7 @@ function emptyWorkbook(): Workbook {
 
 type State = {
   workbook: Workbook
-  selection: { row: number; col: number }
+  selection: { row: number; col: number; endRow: number; endCol: number }
   editing: { addr: string | null; draft: string }
   past: Workbook[]
   future: Workbook[]
@@ -46,6 +46,8 @@ type State = {
   
   // Cell selection and editing
   selectCell: (row: number, col: number) => void
+  setSelectionEnd: (row: number, col: number) => void
+  selectRange: (sr: number, sc: number, er: number, ec: number) => void
   startEdit: (addr: string) => void
   setDraft: (v: string) => void
   commitEdit: () => void
@@ -153,7 +155,7 @@ function loadLocal(): Workbook | null {
 
 export const useStore = create<State>((set, get) => ({
   workbook: loadLocal() || emptyWorkbook(),
-  selection: { row: 1, col: 1 },
+  selection: { row: 1, col: 1, endRow: 1, endCol: 1 },
   editing: { addr: null, draft: '' },
   past: [],
   future: [],
@@ -173,7 +175,7 @@ export const useStore = create<State>((set, get) => ({
       workbook: newWorkbook, 
       past: newPast, 
       future: [],
-      selection: { row: 1, col: 1 },
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 },
       editing: { addr: null, draft: '' }
     })
   },
@@ -210,7 +212,7 @@ export const useStore = create<State>((set, get) => ({
       workbook: newWorkbook, 
       past: newPast, 
       future: [],
-      selection: { row: 1, col: 1 },
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 },
       editing: { addr: null, draft: '' }
     })
   },
@@ -229,7 +231,7 @@ export const useStore = create<State>((set, get) => ({
     
     set({ 
       workbook: newWorkbook,
-      selection: { row: 1, col: 1 },
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 },
       editing: { addr: null, draft: '' }
     })
   },
@@ -242,7 +244,42 @@ export const useStore = create<State>((set, get) => ({
       get().commitEdit()
     }
     // Update selection without altering editing state directly
-    set({ selection: { row, col } })
+    set({ selection: { row, col, endRow: row, endCol: col } })
+  },
+  
+  setSelectionEnd: (row, col) => {
+    // Update only the end points of the selection
+    set(state => ({ 
+      selection: { 
+        ...state.selection, 
+        endRow: row, 
+        endCol: col 
+      } 
+    }))
+  },
+  
+  selectRange: (sr, sc, er, ec) => {
+    const { editing } = get()
+    // If an edit is in progress, commit it before changing selection
+    if (editing.addr) {
+      get().commitEdit()
+    }
+    
+    // Clamp values to be >= 1
+    const startRow = Math.max(1, sr)
+    const startCol = Math.max(1, sc)
+    const endRow = Math.max(1, er)
+    const endCol = Math.max(1, ec)
+    
+    // Update selection
+    set({ 
+      selection: { 
+        row: startRow, 
+        col: startCol, 
+        endRow: endRow, 
+        endCol: endCol 
+      } 
+    })
   },
 
   startEdit: (addr) => {
@@ -414,7 +451,7 @@ export const useStore = create<State>((set, get) => ({
       workbook: newWorkbook, 
       past: newPast, 
       future: [],
-      selection: { row: 1, col: 1 },
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 },
       editing: { addr: null, draft: '' }
     })
   },
@@ -434,7 +471,7 @@ export const useStore = create<State>((set, get) => ({
       past: newPast, 
       future: newFuture, 
       editing: { addr: null, draft: '' },
-      selection: { row: 1, col: 1 }
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 }
     })
   },
 
@@ -453,7 +490,7 @@ export const useStore = create<State>((set, get) => ({
       past: newPast, 
       future: newFuture, 
       editing: { addr: null, draft: '' },
-      selection: { row: 1, col: 1 }
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 }
     })
   },
 
@@ -478,7 +515,7 @@ export const useStore = create<State>((set, get) => ({
       workbook: newWorkbook, 
       past: newPast, 
       future: [],
-      selection: { row: 1, col: 1 }
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 }
     })
   },
 
@@ -599,7 +636,7 @@ export const useStore = create<State>((set, get) => ({
       workbook: newWorkbook, 
       past: newPast, 
       future: [],
-      selection: { row: 1, col: 1 },
+      selection: { row: 1, col: 1, endRow: 1, endCol: 1 },
       editing: { addr: null, draft: '' }
     })
   },
