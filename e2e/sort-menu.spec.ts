@@ -15,7 +15,7 @@ test('header dropdown opens and sorts', async ({ page }) => {
   await expect(page.locator('.col-menu')).toBeVisible();
   
   // click Sort A→Z
-  await page.getByRole('menuitem', { name: 'Sort A→Z' }).click();
+  await page.locator('.col-menu-item', { hasText: 'Sort A→Z' }).click();
   
   // menu closes
   await expect(page.locator('.col-menu')).toBeHidden();
