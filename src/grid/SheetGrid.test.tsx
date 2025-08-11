@@ -50,7 +50,7 @@ describe('SheetGrid', () => {
     expect(triggers.length).toBeGreaterThan(0);
     
     // Click the first trigger
-    fireEvent.click(triggers[0]);
+    fireEvent.mouseDown(triggers[0]);
     
     // Verify the menu appears with both options
     expect(await screen.findByText('Sort A→Z')).toBeInTheDocument();

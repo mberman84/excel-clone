@@ -284,7 +284,7 @@ const HeaderCell = ({
       {/* Sort dropdown trigger */}
       <button 
         className="col-menu-trigger"
-        onClick={(e) => {
+        onMouseDown={(e) => {
           e.preventDefault();
           e.stopPropagation();
           if (!menuOpen && headerRef.current) {
