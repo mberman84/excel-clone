@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import {
   VariableSizeGrid as Grid,
   GridChildComponentProps,
@@ -192,21 +193,32 @@ const HeaderCell = ({
   sortByColumn: (col: number, direction: 'asc' | 'desc') => void
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{top:number,left:number}|null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   
   // Close menu when clicking outside
   useEffect(() => {
     if (!menuOpen) return;
     
     const handleClickOutside = (e: MouseEvent) => {
-      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+      if (
+        headerRef.current && !headerRef.current.contains(e.target as Node) &&
+        menuRef.current && !menuRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false);
+        setMenuPos(null);
       }
     };
+    const closeOnScroll = () => { setMenuOpen(false); setMenuPos(null); };
     
     document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', closeOnScroll, true);
+    window.addEventListener('resize', closeOnScroll);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', closeOnScroll, true);
+      window.removeEventListener('resize', closeOnScroll);
     };
   }, [menuOpen]);
   
@@ -260,6 +272,11 @@ const HeaderCell = ({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          if (!menuOpen && headerRef.current) {
+            const r = headerRef.current.getBoundingClientRect();
+            const left = Math.min(r.right - 140, window.innerWidth - 140);
+            setMenuPos({ top: r.bottom + 4, left: Math.max(4, left) });
+          }
           setMenuOpen(!menuOpen);
         }}
       >
@@ -267,8 +284,12 @@ const HeaderCell = ({
       </button>
       
       {/* Sort dropdown menu */}
-      {menuOpen && (
-        <div className="col-menu">
+      {menuOpen && menuPos && createPortal(
+        <div
+          ref={menuRef}
+          className="col-menu"
+          style={{ position:'fixed', top:menuPos.top, left:menuPos.left }}
+        >
           <div 
             className="col-menu-item"
             onClick={(e) => {
@@ -276,6 +297,7 @@ const HeaderCell = ({
               e.stopPropagation();
               sortByColumn(columnIndex - 1, 'asc');
               setMenuOpen(false);
+              setMenuPos(null);
             }}
           >
             Sort A→Z
@@ -287,12 +309,13 @@ const HeaderCell = ({
               e.stopPropagation();
               sortByColumn(columnIndex - 1, 'desc');
               setMenuOpen(false);
+              setMenuPos(null);
             }}
           >
             Sort Z→A
           </div>
-        </div>
-      )}
+        </div>,
+      document.body)}
       
       <div 
         className="col-resize-handle"
