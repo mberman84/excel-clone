@@ -492,6 +492,9 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   font-size: 10px;
   border: none;
   background: transparent;
+  /* ensure the trigger stays above the resize handle & is always clickable */
+  z-index: 3;
+  pointer-events: auto;
   color: var(--header-fg);
   cursor: pointer;
 }
