@@ -229,8 +229,17 @@ const HeaderCell = ({
       className={classes}
       onMouseDown={(e) => {
         // Helper to test if the original click target (or its ancestors) match selector
+        // React often gives us a `Text` node for the ▼ icon. Map any `Text`
+        // node back to its parent element before running the selector check.
+        const resolveNode = (n: EventTarget | null): Element | null => {
+          if (!n) return null
+          if (n instanceof Element) return n
+          // Text/Comment etc.
+          // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+          return (n as any).parentElement ?? null
+        }
         const within = (node: EventTarget | null, sel: string) =>
-          node instanceof Element && !!node.closest(sel);
+          !!resolveNode(node)?.closest(sel);
 
         // Ignore if clicking on resize handle, menu trigger, or menu itself
         if (within(e.target, '.col-resize-handle') ||
