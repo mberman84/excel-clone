@@ -3,6 +3,120 @@
   --header-bg: #f7f7f7;
   --header-fg: #555;
   --selected: #4a90e2;
+  /* reference highlight palette (cycled while typing formulas) */
+  --ref1: #4a90e2;
+  --ref2: #27ae60;
+  --ref3: #af52de;
+  --ref4: #f5a623;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dark-mode support                                                  */
+/* ------------------------------------------------------------------ */
+
+.theme-dark {
+  /* dark theme tokens */
+  --border: #2e3440;
+  --header-bg: #1b1f2a;
+  --header-fg: #c8d0dc;
+  --selected: #4a90e2;
+  color-scheme: dark;
+
+  /* base document colors */
+  background: #0f1115;
+  color: #e6e8eb;
+}
+
+/* Toolbar ---------------------------------------------------------- */
+.theme-dark .toolbar {
+  background: rgba(20, 22, 28, 0.8);
+  border-bottom-color: var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Buttons ---------------------------------------------------------- */
+.theme-dark .btn {
+  background: #161a22;
+  border-color: var(--border);
+  color: #e6e8eb;
+}
+.theme-dark .btn:hover { background: #1c212b; }
+.theme-dark .btn:active { background: #10131a; }
+.theme-dark .segmented { border-color: var(--border); }
+.theme-dark .segmented .btn + .btn { border-left-color: var(--border); }
+
+/* stronger hover for dark buttons */
+.theme-dark .btn:hover { background: #232a36; }
+
+/* segmented container background for clarity */
+.theme-dark .segmented { background: #12161f; }
+
+/* toggled / pressed state -------------------------------------------------- */
+.btn[aria-pressed='true'] {
+  background: rgba(74, 144, 226, 0.12);
+  border-color: var(--selected);
+  color: #123a6b;
+}
+.segmented .btn[aria-pressed='true'] + .btn { border-left-color: var(--selected); }
+
+.theme-dark .btn[aria-pressed='true'] {
+  background: rgba(74, 144, 226, 0.18);
+  border-color: var(--selected);
+  color: #dfeaff;
+}
+.theme-dark .segmented .btn[aria-pressed='true'] + .btn { border-left-color: var(--selected); }
+
+/* Color picker ----------------------------------------------------- */
+.theme-dark .color-picker { background: #161a22; border-color: var(--border); }
+/* ensure label text readable in dark mode */
+.theme-dark .color-picker { color: var(--header-fg); }
+.theme-dark .color-picker input[type=color] {
+  border-color: var(--border);
+  background: #0f1115;
+}
+
+/* Formula bar ------------------------------------------------------ */
+.theme-dark .formula-bar { border-bottom-color: var(--border); }
+.theme-dark .formula-bar input {
+  background: #0f1115;
+  color: inherit;
+  border-color: var(--border);
+}
+.theme-dark .formula-bar .addr {
+  background: var(--header-bg);
+  color: var(--header-fg);
+}
+
+/* Grid cells ------------------------------------------------------- */
+.theme-dark .cell { border-color: var(--border); }
+.theme-dark .cell--header { background: var(--header-bg); color: var(--header-fg); }
+.theme-dark .cell-input { background: #0f1115; color: inherit; }
+
+/* Resize handles hover cue ---------------------------------------- */
+.theme-dark .col-resize-handle:hover,
+.theme-dark .row-resize-handle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Tab bar ---------------------------------------------------------- */
+.theme-dark .tab-bar {
+  background: rgba(15, 17, 21, 0.9);
+  border-top-color: var(--border);
+}
+.theme-dark .tab {
+  background: #161a22;
+  border-color: var(--border);
+  color: var(--header-fg);
+}
+.theme-dark .tab:hover { background: #1c212b; }
+.theme-dark .tab.add-tab { color: var(--header-fg); }
+.theme-dark .tab.add-tab:hover { background: #1c212b; border: 1px solid var(--border); }
+
+/* Version badge ---------------------------------------------------- */
+.theme-dark .toolbar .version-badge {
+  background: var(--header-bg);
+  color: var(--header-fg);
+  border-color: var(--border);
 }
 
 * { box-sizing: border-box; }
@@ -29,9 +143,6 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 6px;
 }
 
 .formula-bar { display: flex; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid var(--border); }
@@ -107,6 +218,8 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   padding: 0 8px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  /* prevent accidental native text selection while not editing */
+  user-select: none;
 }
 .cell--header {
   background: var(--header-bg);
@@ -120,6 +233,18 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   background-color: rgba(74, 144, 226, 0.06);
 }
 
+/* ------------------------------------------------------------------ */
+/* Cell reference highlights while editing a formula                  */
+/* ------------------------------------------------------------------ */
+.cell--ref-1 { box-shadow: inset 0 0 0 2px var(--ref1); }
+.cell--ref-2 { box-shadow: inset 0 0 0 2px var(--ref2); }
+.cell--ref-3 { box-shadow: inset 0 0 0 2px var(--ref3); }
+.cell--ref-4 { box-shadow: inset 0 0 0 2px var(--ref4); }
+.cell--ref-1,
+.cell--ref-2,
+.cell--ref-3,
+.cell--ref-4 { position: relative; } /* keep above grid bg but below overlay */
+
 .toolbar .version-badge {
   font-size: 11px;
   line-height: 1;
@@ -131,7 +256,7 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   color: var(--header-fg);
 }
 
-.cell-input { width: 100%; height: 100%; border: none; outline: none; font: inherit; padding: 0 6px; background: #fff; }
+.cell-input { width: 100%; height: 100%; border: none; outline: none; font: inherit; padding: 0 8px; background: #fff; }
 
 /* ------------------------------------------------------------------ */
 /* Editing state & transitions                                        */
@@ -186,6 +311,37 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
   background: transparent;
   position: relative;
   z-index: 1;              /* ensure caret renders above overlay */
+  /* allow normal text selection while editing */
+  user-select: text;
+}
+
+/* ------------------------------------------------------------------ */
+/* Formula ghost overlay + coloured reference text                    */
+/* ------------------------------------------------------------------ */
+.cell .formula-ghost {
+  position: absolute;
+  inset: 0;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;      /* vertical centering with input text */
+  white-space: pre;
+  color: inherit;
+  font: inherit;
+  line-height: normal;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cell--formula-editing .cell-input { color: transparent; }
+.formula-ref.ref-1 { color: var(--ref1); font-weight: 600; }
+.formula-ref.ref-2 { color: var(--ref2); font-weight: 600; }
+.formula-ref.ref-3 { color: var(--ref3); font-weight: 600; }
+.formula-ref.ref-4 { color: var(--ref4); font-weight: 600; }
+
+/* ------------------------------------------------------------------ */
+/* Multi-cell range highlight                                         */
+/* ------------------------------------------------------------------ */
+.cell--in-range {
+  background-color: rgba(74, 144, 226, 0.08);
 }
 
 /* ------------------------------------------------------------------ */
@@ -239,6 +395,12 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
 /* ------------------------------------------------------------------ */
 /* Bottom Tab Bar + Sheet Tabs                                        */
 /* ------------------------------------------------------------------ */
+/* ensure toolbar picker inherits dark button styling */
+.theme-dark .toolbar .color-picker {
+  background: #161a22;
+  border-color: var(--border);
+  color: #e6e8eb;
+}
 
 .tab-bar {
   position: sticky;

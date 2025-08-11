@@ -5,7 +5,7 @@ import {
 } from 'react-window'
 import classNames from 'classnames'
 import { useStore } from '../store'
-import { columnIndexToLabel, makeCellAddress, parseCellAddress } from '../utils/cellAddresses'
+import { columnIndexToLabel, makeCellAddress, parseCellAddress, expandRange } from '../utils/cellAddresses'
 import { evaluateDisplay, isFormula } from '../formula'
 import { Sheet } from '../types'
 
@@ -41,6 +41,108 @@ function measureTextWidth(text: string): number {
   return ctx.measureText(text).width + 18; // Add padding
 }
 
+/**
+ * Parse cell references from a formula string and generate highlighting
+ */
+function parseFormulaReferences(draft: string): { 
+  refMap: Map<string, number>, 
+  ghostHTML: string 
+} {
+  // Basic HTML escaper to prevent injection / malformed markup
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, c => (
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c]
+    ));
+
+  // Default empty result
+  const refMap = new Map<string, number>();
+  
+  // If not a formula, return empty result
+  if (!draft.startsWith('=')) {
+    return { refMap, ghostHTML: esc(draft) };
+  }
+  
+  // Find all cell references (A1, $A$1) and ranges (A1:B3)
+  const refRegex = /(\$?[A-Za-z]+\$?[0-9]+(?::\$?[A-Za-z]+\$?[0-9]+)?)/g;
+  const matches = [...draft.matchAll(refRegex)];
+  
+  // Process each match
+  let lastIndex = 0;
+  let colorIndex = 1;
+  let parts: string[] = [];
+  
+  for (const match of matches) {
+    const ref = match[0];
+    const startIndex = match.index!;
+    
+    // Add text before this reference
+    if (startIndex > lastIndex) {
+      parts.push(esc(draft.substring(lastIndex, startIndex)));
+    }
+    
+    // Check if it's a range (contains :)
+    if (ref.includes(':')) {
+      try {
+        // Expand the range and add each cell to the map
+        const [start, end] = ref.split(':');
+        const addresses = expandRange(start, end);
+        
+        // Assign the same color to all cells in the range
+        const refClass = colorIndex;
+        for (const addr of addresses) {
+          refMap.set(addr, refClass);
+        }
+        
+        // Increment color index (1-4, then cycle)
+        colorIndex = colorIndex % 4 + 1;
+        
+        // Add the highlighted range to the HTML
+        parts.push(`<span class="formula-ref ref-${refClass}">${esc(ref)}</span>`);
+      } catch (e) {
+        // If range expansion fails, just add the text
+        parts.push(esc(ref));
+      }
+    } else {
+      try {
+        // Parse to verify it's a valid reference
+        parseCellAddress(ref);
+        
+        // Assign color and add to map
+        const refClass = colorIndex;
+        refMap.set(ref, refClass);
+        
+        // Increment color index (1-4, then cycle)
+        colorIndex = colorIndex % 4 + 1;
+        
+        // Add the highlighted cell reference to the HTML
+        parts.push(`<span class="formula-ref ref-${refClass}">${esc(ref)}</span>`);
+      } catch (e) {
+        // If parsing fails, just add the text
+        parts.push(esc(ref));
+      }
+    }
+    
+    lastIndex = startIndex + ref.length;
+  }
+  
+  // Add any remaining text
+  if (lastIndex < draft.length) {
+    parts.push(esc(draft.substring(lastIndex)));
+  }
+  
+  return {
+    refMap,
+    ghostHTML: parts.join('')
+  };
+}
+
+// Type for tracking drag state
+type DragState = {
+  type: 'cells' | 'row' | 'col';
+  anchorRow: number;
+  anchorCol: number;
+} | null;
+
 // data object fed into each virtualised cell so it always receives
 // the latest state without relying on stale closures
 type GridData = {
@@ -48,18 +150,24 @@ type GridData = {
   selection: ReturnType<typeof useStore>['selection']
   editing: ReturnType<typeof useStore>['editing']
   selectCell: (r: number, c: number) => void
+  setSelectionEnd: (r: number, c: number) => void
+  selectRange: (sr: number, sc: number, er: number, ec: number) => void
   startEdit: (addr: string) => void
   setDraft: (v: string) => void
   commitEdit: () => void
   cancelEdit: () => void
   setColWidth: (c: number, px: number) => void
   setRowHeight: (r: number, px: number) => void
+  refMap: Map<string, number>
+  ghostHTML: string
+  dragState: DragState
+  setDragState: (state: DragState) => void
 }
 
 export default function SheetGrid() {
   const { 
     workbook, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
-    setColWidth, setRowHeight, getUsedRange
+    setColWidth, setRowHeight, getUsedRange, setSelectionEnd, selectRange
   } = useStore(s => ({
     workbook: s.workbook,
     selection: s.selection,
@@ -72,10 +180,32 @@ export default function SheetGrid() {
     setColWidth: s.setColWidth,
     setRowHeight: s.setRowHeight,
     getUsedRange: s.getUsedRange,
+    setSelectionEnd: s.setSelectionEnd,
+    selectRange: s.selectRange,
   }))
 
   // Derive the active sheet reactively from the workbook
   const sheet = useMemo(() => workbook.sheets[workbook.activeIndex], [workbook])
+
+  // Parse formula references when editing
+  const { refMap, ghostHTML } = useMemo(() => {
+    return parseFormulaReferences(editing.draft);
+  }, [editing.draft]);
+
+  // Track drag state
+  const [dragState, setDragState] = useState<DragState>(null);
+
+  // Clear drag state on document mouseup
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setDragState(null);
+    };
+    
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   const gridRef = useRef<any>(null)
 
@@ -162,12 +292,18 @@ export default function SheetGrid() {
       selection,
       editing,
       selectCell,
+      setSelectionEnd,
+      selectRange,
       startEdit,
       setDraft,
       commitEdit,
       cancelEdit,
       setColWidth,
       setRowHeight,
+      refMap,
+      ghostHTML,
+      dragState,
+      setDragState
     } = data
 
     const isHeaderRow = rowIndex === 0
@@ -236,7 +372,44 @@ export default function SheetGrid() {
     
     if (isHeaderRow) {
       return (
-        <div style={style} className={classes}>
+        <div 
+          style={style} 
+          className={classes}
+          onMouseDown={(e) => {
+            // Ignore if clicking on resize handle
+            if ((e.target as HTMLElement).closest('.col-resize-handle')) return;
+            if (e.button !== 0) return; // Left click only
+            
+            if (e.shiftKey) {
+              // Extend selection from current position
+              selectRange(1, selection.col, ROWS, columnIndex);
+              setDragState({
+                type: 'col',
+                anchorRow: 1,
+                anchorCol: selection.col
+              });
+            } else {
+              // Select entire column
+              selectRange(1, columnIndex, ROWS, columnIndex);
+              setDragState({
+                type: 'col',
+                anchorRow: 1,
+                anchorCol: columnIndex
+              });
+            }
+          }}
+          onMouseEnter={(e) => {
+            // Update selection when dragging
+            if (dragState?.type === 'col' && (e.buttons & 1) !== 0) {
+              selectRange(
+                1, 
+                Math.min(dragState.anchorCol, columnIndex),
+                ROWS,
+                Math.max(dragState.anchorCol, columnIndex)
+              );
+            }
+          }}
+        >
           {columnIndexToLabel(columnIndex - 1)}
           <div 
             className="col-resize-handle"
@@ -253,7 +426,44 @@ export default function SheetGrid() {
     
     if (isHeaderCol) {
       return (
-        <div style={style} className={classes}>
+        <div 
+          style={style} 
+          className={classes}
+          onMouseDown={(e) => {
+            // Ignore if clicking on resize handle
+            if ((e.target as HTMLElement).closest('.row-resize-handle')) return;
+            if (e.button !== 0) return; // Left click only
+            
+            if (e.shiftKey) {
+              // Extend selection from current position
+              selectRange(selection.row, 1, rowIndex, COLS);
+              setDragState({
+                type: 'row',
+                anchorRow: selection.row,
+                anchorCol: 1
+              });
+            } else {
+              // Select entire row
+              selectRange(rowIndex, 1, rowIndex, COLS);
+              setDragState({
+                type: 'row',
+                anchorRow: rowIndex,
+                anchorCol: 1
+              });
+            }
+          }}
+          onMouseEnter={(e) => {
+            // Update selection when dragging
+            if (dragState?.type === 'row' && (e.buttons & 1) !== 0) {
+              selectRange(
+                Math.min(dragState.anchorRow, rowIndex),
+                1,
+                Math.max(dragState.anchorRow, rowIndex),
+                COLS
+              );
+            }
+          }}
+        >
           {rowIndex}
           <div 
             className="row-resize-handle"
@@ -269,10 +479,21 @@ export default function SheetGrid() {
     }
     
     const addr = makeCellAddress(columnIndex - 1, rowIndex - 1)
-    const isSelected = selection.row === rowIndex && selection.col === columnIndex
+    const isAnchorCell = selection.row === rowIndex && selection.col === columnIndex
+    const isInSelectionRange = (
+      rowIndex >= Math.min(selection.row, selection.endRow) &&
+      rowIndex <= Math.max(selection.row, selection.endRow) &&
+      columnIndex >= Math.min(selection.col, selection.endCol) &&
+      columnIndex <= Math.max(selection.col, selection.endCol)
+    )
     const isEditingHere = editing.addr === addr
     const cell = sheet.cells[addr]
     const display = cell ? (isFormula(cell.value) ? evaluateDisplay(addr, sheet) : cell.value) : ''
+
+    // Check if this cell is referenced in the current formula
+    const refClass = editing.addr && refMap.has(addr) && addr !== editing.addr 
+      ? `cell--ref-${refMap.get(addr)}` 
+      : '';
 
     const fmt = cell?.format
     const styleMerged: React.CSSProperties = { 
@@ -299,12 +520,15 @@ export default function SheetGrid() {
     }, [isEditingHere])
 
     if (isEditingHere) {
+      const isFormulaEditing = editing.draft.startsWith('=')
       return (
         <div
           style={styleMerged}
           className={classNames(classes, {
-            'cell--selected': isSelected,
+            'cell--selected': isAnchorCell,
+            'cell--in-range': isInSelectionRange && !isAnchorCell,
             'cell--editing': isEditingHere,
+            'cell--formula-editing': isFormulaEditing,
           })}
         >
           <input
@@ -319,6 +543,12 @@ export default function SheetGrid() {
               else if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
             }}
           />
+          {isFormulaEditing && (
+            <div
+              className="formula-ghost"
+              dangerouslySetInnerHTML={{ __html: ghostHTML }}
+            />
+          )}
         </div>
       )
     }
@@ -327,23 +557,53 @@ export default function SheetGrid() {
       <div
         style={styleMerged}
         className={classNames(classes, {
-          'cell--selected': isSelected,
+          'cell--selected': isAnchorCell,
+          'cell--in-range': isInSelectionRange && !isAnchorCell,
           'cell--editing': isEditingHere,
+          [refClass]: !!refClass,
         })}
-        onDoubleClick={(e) => {
-          e.preventDefault()
-          /* explicit double-click editing per requirements */
-          selectCell(rowIndex, columnIndex)
-          startEdit(addr)
-        }}
         onMouseDown={(e) => {
-          if (e.button !== 0) return
-          /* always select on mouse down */
-          selectCell(rowIndex, columnIndex)
-          /* if this was the second click of a double-click, start editing immediately */
+          if (e.button !== 0) return // Left click only
+          /* If this is the second click of a double-click, start editing immediately */
           if (e.detail === 2) {
-            e.preventDefault()
-            startEdit(addr)
+            e.preventDefault();
+            e.stopPropagation();
+            selectCell(rowIndex, columnIndex);
+            startEdit(addr);
+            return;
+          }
+          
+          if (e.shiftKey) {
+            // Extend selection from current position
+            selectRange(selection.row, selection.col, rowIndex, columnIndex);
+            setDragState({
+              type: 'cells',
+              anchorRow: selection.row,
+              anchorCol: selection.col
+            });
+          } else {
+            // Start new selection
+            selectCell(rowIndex, columnIndex);
+            setDragState({
+              type: 'cells',
+              anchorRow: rowIndex,
+              anchorCol: columnIndex
+            });
+          }
+        }}
+        /* separate explicit double-click handler (outside of onMouseDown) */
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          selectCell(rowIndex, columnIndex);
+          startEdit(addr);
+        }}
+        /* if this was the second click of a double-click, start editing immediately */
+        /* (handled above) */
+        onMouseEnter={(e) => {
+          // Update selection when dragging cells
+          if (dragState?.type === 'cells' && (e.buttons & 1) !== 0) {
+            setSelectionEnd(rowIndex, columnIndex);
           }
         }}
       >
@@ -360,7 +620,7 @@ export default function SheetGrid() {
       */}
       <Grid
         ref={gridRef}
-        /* ensure react-window’s internal cache resets when switching sheets */
+        /* ensure react-window's internal cache resets when switching sheets */
         key={sheet.id}
         columnCount={COLS + 1}
         columnWidth={(index: number) =>
@@ -381,12 +641,18 @@ export default function SheetGrid() {
           selection,
           editing,
           selectCell,
+          setSelectionEnd,
+          selectRange,
           startEdit,
           setDraft,
           commitEdit,
           cancelEdit,
           setColWidth,
           setRowHeight,
+          refMap,
+          ghostHTML,
+          dragState,
+          setDragState,
         } as GridData}
       >
         {Cell}
