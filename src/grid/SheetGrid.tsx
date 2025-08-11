@@ -288,7 +288,10 @@ const HeaderCell = ({
           e.preventDefault();
           e.stopPropagation();
           if (!menuOpen && headerRef.current) {
-            const r = headerRef.current.getBoundingClientRect();
+            // Prefer bounding rect from the nearest rendered cell element so the
+            // menu positions correctly even if the trigger button is nested.
+            const cellEl = (e.currentTarget as HTMLElement).closest('.cell') as HTMLElement | null;
+            const r = (cellEl ?? headerRef.current)!.getBoundingClientRect();
             const left = Math.min(r.right - 140, window.innerWidth - 140);
             setMenuPos({ top: r.bottom + 4, left: Math.max(4, left) });
           }
