@@ -74,6 +74,9 @@ type State = {
   toAOA: () => (string | number)[][]
   toAOAAll: () => { name: string, data: (string | number)[][] }[]
   fromAOA: (data: (string | number)[][]) => void
+  
+  // Sorting
+  sortByColumn: (col: number, direction: 'asc' | 'desc') => void
 }
 
 function cloneSheet(s: Sheet): Sheet {
@@ -640,4 +643,126 @@ export const useStore = create<State>((set, get) => ({
       editing: { addr: null, draft: '' }
     })
   },
+  
+  sortByColumn: (col, direction) => {
+    // No-op if col is negative
+    if (col < 0) return
+    
+    const { workbook, past, getUsedRange, editing } = get()
+    
+    // Commit any active edit before sorting
+    if (editing.addr) {
+      get().commitEdit()
+    }
+    
+    const newWorkbook = cloneWorkbook(workbook)
+    const sheet = newWorkbook.sheets[newWorkbook.activeIndex]
+    const { maxRow } = getUsedRange()
+    
+    // Build an array of rows with their sort keys
+    const rows = []
+    for (let r = 0; r < maxRow; r++) {
+      const addr = makeCellAddress(col, r)
+      const cell = sheet.cells[addr]
+      
+      // Get the display value (evaluated if formula)
+      let key = ''
+      if (cell) {
+        key = isFormula(cell.value) ? evaluateDisplay(addr, sheet) : cell.value
+      }
+      
+      // Determine if the key is numeric
+      const num = Number(key)
+      const isNum = !Number.isNaN(num) && key !== ''
+      
+      rows.push({
+        oldRow: r,
+        key: isNum ? num : key,
+        keyStr: String(key),
+        isNum
+      })
+    }
+    
+    // Sort the rows
+    rows.sort((a, b) => {
+      // Handle empty values - they should sort last for ascending, first for descending
+      const aEmpty = a.keyStr === ''
+      const bEmpty = b.keyStr === ''
+      
+      if (aEmpty && !bEmpty) return direction === 'asc' ? 1 : -1
+      if (!aEmpty && bEmpty) return direction === 'asc' ? -1 : 1
+      if (aEmpty && bEmpty) return a.oldRow - b.oldRow // stable sort
+      
+      // If both are numeric, sort numerically
+      if (a.isNum && b.isNum) {
+        return direction === 'asc' 
+          ? (a.key as number) - (b.key as number) 
+          : (b.key as number) - (a.key as number)
+      }
+      
+      // Otherwise sort as strings
+      const cmp = a.keyStr.localeCompare(b.keyStr)
+      return direction === 'asc' ? cmp : -cmp
+    })
+    
+    // Create a mapping from old row to new row
+    const oldToNew: Record<number, number> = {}
+    rows.forEach((row, newIdx) => {
+      oldToNew[row.oldRow] = newIdx
+    })
+    
+    // Remap cells
+    const newCells: Record<string, Cell> = {}
+    for (const [addr, cell] of Object.entries(sheet.cells)) {
+      try {
+        const { col: c, row: r } = parseCellAddress(addr)
+        
+        if (r < maxRow) {
+          // This row is within the sort range, remap it
+          const newR = oldToNew[r]
+          const newAddr = makeCellAddress(c, newR)
+          newCells[newAddr] = cell
+        } else {
+          // This row is outside the sort range, keep it as is
+          newCells[addr] = cell
+        }
+      } catch {
+        // If parsing fails, keep the cell as is
+        newCells[addr] = cell
+      }
+    }
+    
+    // Remap row heights
+    const newRowHeights: number[] = []
+    if (sheet.rowHeights) {
+      // Copy heights for rows that are being sorted
+      for (let r = 0; r < maxRow; r++) {
+        if (r in oldToNew && sheet.rowHeights[r] !== undefined) {
+          const newR = oldToNew[r]
+          newRowHeights[newR] = sheet.rowHeights[r]
+        }
+      }
+      
+      // Preserve heights for rows beyond the sort range
+      for (let r = maxRow; r < sheet.rowHeights.length; r++) {
+        if (sheet.rowHeights[r] !== undefined) {
+          newRowHeights[r] = sheet.rowHeights[r]
+        }
+      }
+    }
+    
+    // Update the sheet with new cells and row heights
+    sheet.cells = newCells
+    sheet.rowHeights = newRowHeights
+    
+    // Update history and save
+    const newPast = [...past, cloneWorkbook(workbook)].slice(-50)
+    saveLocal(newWorkbook)
+    
+    set({
+      workbook: newWorkbook,
+      past: newPast,
+      future: []
+    })
+  }
 }))
