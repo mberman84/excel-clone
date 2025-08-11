@@ -228,10 +228,16 @@ const HeaderCell = ({
       style={style} 
       className={classes}
       onMouseDown={(e) => {
-        // Ignore if clicking on resize handle or menu
-        if ((e.target as HTMLElement).closest('.col-resize-handle') || 
-            (e.target as HTMLElement).closest('.col-menu-trigger') ||
-            (e.target as HTMLElement).closest('.col-menu')) return;
+        // Helper to test if the original click target (or its ancestors) match selector
+        const within = (node: EventTarget | null, sel: string) =>
+          node instanceof Element && !!node.closest(sel);
+
+        // Ignore if clicking on resize handle, menu trigger, or menu itself
+        if (within(e.target, '.col-resize-handle') ||
+            within(e.target, '.col-menu-trigger') ||
+            within(e.target, '.col-menu')) {
+          return;
+        }
         if (e.button !== 0) return; // Left click only
         
         if (e.shiftKey) {
