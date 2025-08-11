@@ -61,7 +61,6 @@ export default function App() {
     renameSheet,
     deleteSheet,
     setActiveSheet,
-    sortByColumn,
   } = useStore(s => ({
     workbook: s.workbook,
     selection: s.selection,
@@ -85,7 +84,6 @@ export default function App() {
     renameSheet: s.renameSheet,
     deleteSheet: s.deleteSheet,
     setActiveSheet: s.setActiveSheet,
-    sortByColumn: s.sortByColumn,
   }))
 
   // Derive the active sheet reactively from the workbook
@@ -231,21 +229,6 @@ export default function App() {
               onChange={(e) => e.target.files && e.target.files[0] && onImport(e.target.files[0])}
             />
           </label>
-        </div>
-        {/* sort buttons */}
-        <div className="segmented">
-          <button 
-            className="btn" 
-            onClick={() => selection.col > 0 && sortByColumn(selection.col - 1, 'asc')}
-          >
-            Sort A→Z
-          </button>
-          <button 
-            className="btn" 
-            onClick={() => selection.col > 0 && sortByColumn(selection.col - 1, 'desc')}
-          >
-            Sort Z→A
-          </button>
         </div>
         {/* dark-mode toggle */}
         <button

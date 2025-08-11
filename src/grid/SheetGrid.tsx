@@ -162,12 +162,13 @@ type GridData = {
   ghostHTML: string
   dragState: DragState
   setDragState: (state: DragState) => void
+  sortByColumn: (col: number, direction: 'asc' | 'desc') => void
 }
 
 export default function SheetGrid() {
   const { 
     workbook, selection, editing, selectCell, startEdit, setDraft, commitEdit, cancelEdit,
-    setColWidth, setRowHeight, getUsedRange, setSelectionEnd, selectRange
+    setColWidth, setRowHeight, getUsedRange, setSelectionEnd, selectRange, sortByColumn
   } = useStore(s => ({
     workbook: s.workbook,
     selection: s.selection,
@@ -182,6 +183,7 @@ export default function SheetGrid() {
     getUsedRange: s.getUsedRange,
     setSelectionEnd: s.setSelectionEnd,
     selectRange: s.selectRange,
+    sortByColumn: s.sortByColumn,
   }))
 
   // Derive the active sheet reactively from the workbook
@@ -303,7 +305,8 @@ export default function SheetGrid() {
       refMap,
       ghostHTML,
       dragState,
-      setDragState
+      setDragState,
+      sortByColumn
     } = data
 
     const isHeaderRow = rowIndex === 0
@@ -371,13 +374,36 @@ export default function SheetGrid() {
     }
     
     if (isHeaderRow) {
+      // Add state for column header dropdown menu
+      const [menuOpen, setMenuOpen] = useState(false);
+      const headerRef = useRef<HTMLDivElement>(null);
+      
+      // Close menu when clicking outside
+      useEffect(() => {
+        if (!menuOpen) return;
+        
+        const handleClickOutside = (e: MouseEvent) => {
+          if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+            setMenuOpen(false);
+          }
+        };
+        
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
+      }, [menuOpen]);
+      
       return (
         <div 
+          ref={headerRef}
           style={style} 
           className={classes}
           onMouseDown={(e) => {
-            // Ignore if clicking on resize handle
-            if ((e.target as HTMLElement).closest('.col-resize-handle')) return;
+            // Ignore if clicking on resize handle or menu
+            if ((e.target as HTMLElement).closest('.col-resize-handle') || 
+                (e.target as HTMLElement).closest('.col-menu-trigger') ||
+                (e.target as HTMLElement).closest('.col-menu')) return;
             if (e.button !== 0) return; // Left click only
             
             if (e.shiftKey) {
@@ -411,6 +437,47 @@ export default function SheetGrid() {
           }}
         >
           {columnIndexToLabel(columnIndex - 1)}
+          
+          {/* Sort dropdown trigger */}
+          <button 
+            className="col-menu-trigger"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen(!menuOpen);
+            }}
+          >
+            ▼
+          </button>
+          
+          {/* Sort dropdown menu */}
+          {menuOpen && (
+            <div className="col-menu">
+              <div 
+                className="col-menu-item"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  sortByColumn(columnIndex - 1, 'asc');
+                  setMenuOpen(false);
+                }}
+              >
+                Sort A→Z
+              </div>
+              <div 
+                className="col-menu-item"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  sortByColumn(columnIndex - 1, 'desc');
+                  setMenuOpen(false);
+                }}
+              >
+                Sort Z→A
+              </div>
+            </div>
+          )}
+          
           <div 
             className="col-resize-handle"
             onMouseDown={startColumnResize}
@@ -653,6 +720,7 @@ export default function SheetGrid() {
           ghostHTML,
           dragState,
           setDragState,
+          sortByColumn,
         } as GridData}
       >
         {Cell}
