@@ -504,10 +504,8 @@ html, body, #root { height: 100%; margin: 0; font-family: ui-sans-serif, system-
 
 /* dropdown container ------------------------------------------------ */
 .col-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 2px;
+  /* rendered via a React portal with inline coordinates */
+  position: fixed;
   min-width: 120px;
   background: #fff;
   border: 1px solid var(--border);
