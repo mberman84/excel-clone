@@ -689,8 +689,11 @@ export const useStore = create<State>((set, get) => ({
       const aEmpty = a.keyStr === ''
       const bEmpty = b.keyStr === ''
       
-      if (aEmpty && !bEmpty) return direction === 'asc' ? 1 : -1
-      if (!aEmpty && bEmpty) return direction === 'asc' ? -1 : 1
+      // Excel always places empty cells after non-empty ones regardless of
+      // sort direction. We therefore push empties to the bottom for both
+      // ascending and descending orders.
+      if (aEmpty && !bEmpty) return 1
+      if (!aEmpty && bEmpty) return -1
       if (aEmpty && bEmpty) return a.oldRow - b.oldRow // stable sort
       
       // If both are numeric, sort numerically
