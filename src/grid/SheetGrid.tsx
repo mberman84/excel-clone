@@ -726,9 +726,19 @@ export default function SheetGrid() {
           if (editing.addr && editing.draft.startsWith('=') && addr !== editing.addr) {
             e.preventDefault();
             e.stopPropagation();
-            formulaBaseRef.current = editing.draft;
+
+            const draft = editing.draft;
+            // Capture everything up to (but not including) a trailing ref/range.
+            // If no trailing ref, `base` will equal the whole draft string.
+            // Regex explanation:
+            //   (.*?)  -> non-greedy capture of any chars = base of formula
+            //   (\\$?[A-Za-z]+\\$?[0-9]+(?:[:]\\$?[A-Za-z]+\\$?[0-9]+)?) -> trailing single ref or range
+            const m = draft.match(/^(.*?)(\\$?[A-Za-z]+\\$?[0-9]+(?::\\$?[A-Za-z]+\\$?[0-9]+)?)$/);
+            const base = m ? m[1] : draft;
+
+            formulaBaseRef.current = base;
             setFormulaAnchor(addr);
-            setDraft(editing.draft + addr);
+            setDraft(base + addr);
             return; // don't change selection
           }
           
