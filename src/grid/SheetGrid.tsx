@@ -732,8 +732,8 @@ export default function SheetGrid() {
             // If no trailing ref, `base` will equal the whole draft string.
             // Regex explanation:
             //   (.*?)  -> non-greedy capture of any chars = base of formula
-            //   (\\$?[A-Za-z]+\\$?[0-9]+(?:[:]\\$?[A-Za-z]+\\$?[0-9]+)?) -> trailing single ref or range
-            const m = draft.match(/^(.*?)(\\$?[A-Za-z]+\\$?[0-9]+(?::\\$?[A-Za-z]+\\$?[0-9]+)?)$/);
+            //   (\$?[A-Za-z]+\$?[0-9]+(?:[:]\$?[A-Za-z]+\$?[0-9]+)?) -> trailing single ref or range
+            const m = draft.match(/^(.*?)(\$?[A-Za-z]+\$?[0-9]+(?::\$?[A-Za-z]+\$?[0-9]+)?)$/);
             const base = m ? m[1] : draft;
 
             formulaBaseRef.current = base;
