@@ -67,4 +67,74 @@ describe('SheetGrid', () => {
     // Verify sortByColumn was called with the right parameters
     expect(mockSortByColumn).toHaveBeenCalledWith(0, 'asc');
   });
+
+  test('Sort Z→A triggers descending sort and closes menu', async () => {
+    render(<SheetGrid />);
+
+    const trigger = (await screen.findAllByRole('button', { name: '▼' }))[0];
+    fireEvent.mouseDown(trigger);
+
+    const descItem = await screen.findByText('Sort Z→A');
+    fireEvent.click(descItem);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Sort Z→A')).not.toBeInTheDocument();
+    });
+
+    expect(mockSortByColumn).toHaveBeenCalledWith(0, 'desc');
+  });
+
+  test('clicking outside the menu closes it', async () => {
+    render(<SheetGrid />);
+    const trigger = (await screen.findAllByRole('button', { name: '▼' }))[0];
+    fireEvent.mouseDown(trigger);
+    expect(await screen.findByText('Sort A→Z')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Sort A→Z')).not.toBeInTheDocument();
+    });
+  });
+
+  test('clicking the trigger again toggles the menu closed', async () => {
+    render(<SheetGrid />);
+    const trigger = (await screen.findAllByRole('button', { name: '▼' }))[0];
+
+    // open
+    fireEvent.mouseDown(trigger);
+    expect(await screen.findByText('Sort A→Z')).toBeInTheDocument();
+
+    // click again to close
+    fireEvent.mouseDown(trigger);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Sort A→Z')).not.toBeInTheDocument();
+    });
+  });
+
+  test('menu closes on window scroll and resize', async () => {
+    render(<SheetGrid />);
+    const trigger = (await screen.findAllByRole('button', { name: '▼' }))[0];
+
+    // open
+    fireEvent.mouseDown(trigger);
+    expect(await screen.findByText('Sort A→Z')).toBeInTheDocument();
+
+    // scroll event
+    window.dispatchEvent(new Event('scroll'));
+    await waitFor(() => {
+      expect(screen.queryByText('Sort A→Z')).not.toBeInTheDocument();
+    });
+
+    // reopen
+    fireEvent.mouseDown(trigger);
+    expect(await screen.findByText('Sort A→Z')).toBeInTheDocument();
+
+    // resize event
+    window.dispatchEvent(new Event('resize'));
+    await waitFor(() => {
+      expect(screen.queryByText('Sort A→Z')).not.toBeInTheDocument();
+    });
+  });
 });
