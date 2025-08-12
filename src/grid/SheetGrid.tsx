@@ -143,6 +143,22 @@ type DragState = {
   anchorCol: number;
 } | null;
 
+// Type for formula picking state
+type FormulaPick = {
+  prefix: string;
+  suffix: string;
+  anchor: string;
+} | null;
+
+// Helper to determine if a separator is needed when inserting a reference
+const needsSeparator = (text: string): boolean => {
+  if (!text.length) return false;
+  const lastChar = text[text.length - 1];
+  return !(lastChar === '=' || lastChar === '(' || lastChar === ',' || 
+           lastChar === '+' || lastChar === '-' || lastChar === '*' || 
+           lastChar === '/' || lastChar === '^' || lastChar === ':');
+};
+
 // data object fed into each virtualised cell so it always receives
 // the latest state without relying on stale closures
 type GridData = {
@@ -162,6 +178,8 @@ type GridData = {
   ghostHTML: string
   dragState: DragState
   setDragState: (state: DragState) => void
+  formulaPick: FormulaPick
+  setFormulaPick: (state: FormulaPick) => void
 }
 
 export default function SheetGrid() {
@@ -194,11 +212,15 @@ export default function SheetGrid() {
 
   // Track drag state
   const [dragState, setDragState] = useState<DragState>(null);
+  
+  // Track formula pick state
+  const [formulaPick, setFormulaPick] = useState<FormulaPick>(null);
 
   // Clear drag state on document mouseup
   useEffect(() => {
     const handleMouseUp = () => {
       setDragState(null);
+      setFormulaPick(null);
     };
     
     document.addEventListener('mouseup', handleMouseUp);
@@ -303,7 +325,9 @@ export default function SheetGrid() {
       refMap,
       ghostHTML,
       dragState,
-      setDragState
+      setDragState,
+      formulaPick,
+      setFormulaPick
     } = data
 
     const isHeaderRow = rowIndex === 0
@@ -563,7 +587,32 @@ export default function SheetGrid() {
           [refClass]: !!refClass,
         })}
         onMouseDown={(e) => {
-          if (e.button !== 0) return // Left click only
+          if (e.button !== 0) return; // Left click only
+          
+          // If editing a formula, handle cell reference insertion
+          if (editing.addr && editing.draft.startsWith('=')) {
+            e.preventDefault(); // Prevent focus change
+            
+            // Calculate the address
+            const clickedAddr = makeCellAddress(columnIndex - 1, rowIndex - 1);
+            
+            // Determine if we need to add a separator
+            const needsSep = needsSeparator(editing.draft);
+            const prefix = editing.draft + (needsSep ? ',' : '');
+            
+            // Update the draft with the new reference
+            setDraft(prefix + clickedAddr);
+            
+            // Set formula pick state for potential range selection
+            setFormulaPick({
+              prefix,
+              suffix: '',
+              anchor: clickedAddr
+            });
+            
+            return;
+          }
+          
           /* If this is the second click of a double-click, start editing immediately */
           if (e.detail === 2) {
             e.preventDefault();
@@ -598,9 +647,20 @@ export default function SheetGrid() {
           selectCell(rowIndex, columnIndex);
           startEdit(addr);
         }}
-        /* if this was the second click of a double-click, start editing immediately */
-        /* (handled above) */
         onMouseEnter={(e) => {
+          // If picking a formula reference and dragging
+          if (formulaPick && (e.buttons & 1) !== 0) {
+            const currentAddr = makeCellAddress(columnIndex - 1, rowIndex - 1);
+            // If the mouse is still on the anchor cell, insert just the single address.
+            // Otherwise build the A1:B2 style range.
+            const rangeStr =
+              currentAddr === formulaPick.anchor
+                ? currentAddr
+                : `${formulaPick.anchor}:${currentAddr}`;
+            setDraft(formulaPick.prefix + rangeStr + formulaPick.suffix);
+            return;
+          }
+          
           // Update selection when dragging cells
           if (dragState?.type === 'cells' && (e.buttons & 1) !== 0) {
             setSelectionEnd(rowIndex, columnIndex);
@@ -653,6 +713,8 @@ export default function SheetGrid() {
           ghostHTML,
           dragState,
           setDragState,
+          formulaPick,
+          setFormulaPick,
         } as GridData}
       >
         {Cell}
