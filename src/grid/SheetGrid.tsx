@@ -164,6 +164,9 @@ type GridData = {
   dragState: DragState
   setDragState: (state: DragState) => void
   sortByColumn: (col: number, direction: 'asc' | 'desc') => void
+  formulaAnchor: string | null
+  setFormulaAnchor: (addr: string | null) => void
+  formulaBaseRef: React.MutableRefObject<string>
 }
 
 // Dedicated component for column headers
@@ -379,11 +382,14 @@ export default function SheetGrid() {
 
   // Track drag state
   const [dragState, setDragState] = useState<DragState>(null);
+  const [formulaAnchor, setFormulaAnchor] = useState<string | null>(null);
+  const formulaBaseRef = useRef<string>('');
 
   // Clear drag state on document mouseup
   useEffect(() => {
     const handleMouseUp = () => {
       setDragState(null);
+      setFormulaAnchor(null);
     };
     
     document.addEventListener('mouseup', handleMouseUp);
@@ -489,7 +495,10 @@ export default function SheetGrid() {
       ghostHTML,
       dragState,
       setDragState,
-      sortByColumn
+      sortByColumn,
+      formulaAnchor,
+      setFormulaAnchor,
+      formulaBaseRef
     } = data
 
     const isHeaderRow = rowIndex === 0
@@ -713,6 +722,16 @@ export default function SheetGrid() {
           [refClass]: !!refClass,
         })}
         onMouseDown={(e) => {
+          // While editing a formula in another cell, clicking should insert a reference
+          if (editing.addr && editing.draft.startsWith('=') && addr !== editing.addr) {
+            e.preventDefault();
+            e.stopPropagation();
+            formulaBaseRef.current = editing.draft;
+            setFormulaAnchor(addr);
+            setDraft(editing.draft + addr);
+            return; // don't change selection
+          }
+          
           if (e.button !== 0) return // Left click only
           /* If this is the second click of a double-click, start editing immediately */
           if (e.detail === 2) {
@@ -751,6 +770,14 @@ export default function SheetGrid() {
         /* if this was the second click of a double-click, start editing immediately */
         /* (handled above) */
         onMouseEnter={(e) => {
+          // If we're dragging to create a range while editing a formula
+          if (formulaAnchor && editing.addr && editing.draft.startsWith('=') && (e.buttons & 1) !== 0) {
+            if (addr !== editing.addr) {
+              setDraft(`${formulaBaseRef.current}${formulaAnchor}:${addr}`);
+              return;
+            }
+          }
+          
           // Update selection when dragging cells
           if (dragState?.type === 'cells' && (e.buttons & 1) !== 0) {
             setSelectionEnd(rowIndex, columnIndex);
@@ -804,6 +831,9 @@ export default function SheetGrid() {
           dragState,
           setDragState,
           sortByColumn,
+          formulaAnchor,
+          setFormulaAnchor,
+          formulaBaseRef,
         } as GridData}
       >
         {Cell}
