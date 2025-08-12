@@ -771,9 +771,19 @@ export default function SheetGrid() {
         /* (handled above) */
         onMouseEnter={(e) => {
           // If we're dragging to create a range while editing a formula
-          if (formulaAnchor && editing.addr && editing.draft.startsWith('=') && (e.buttons & 1) !== 0) {
+          // While dragging with the mouse held down to build a reference range
+          if (formulaAnchor &&
+              editing.addr &&
+              editing.draft.startsWith('=') &&
+              (e.buttons & 1) !== 0) {
             if (addr !== editing.addr) {
-              setDraft(`${formulaBaseRef.current}${formulaAnchor}:${addr}`);
+              if (addr === formulaAnchor) {
+                // Pointer is back over the anchor → show just the single cell
+                setDraft(`${formulaBaseRef.current}${formulaAnchor}`);
+              } else {
+                // Pointer over a different cell → show anchor:current range
+                setDraft(`${formulaBaseRef.current}${formulaAnchor}:${addr}`);
+              }
               return;
             }
           }
