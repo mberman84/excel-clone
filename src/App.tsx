@@ -247,7 +247,7 @@ export default function App() {
           value={editing.addr ? editing.draft : (selectedAddr ? (sheet.cells[selectedAddr]?.value ?? '') : '')}
           onChange={(e) => setDraft(e.target.value)}
           onFocus={() => selectedAddr && startEdit(selectedAddr)}
-          onBlur={() => commitEdit()}
+          onBlur={() => { const isFormulaDraft = editing.addr && editing.draft.trim().startsWith('='); if (!isFormulaDraft) commitEdit() }}
           onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') cancelEdit() }}
           placeholder="Type a value or =formula"
         />

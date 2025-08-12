@@ -561,7 +561,7 @@ export default function SheetGrid() {
             ref={inputRef}
             value={editing.draft}
             onChange={(e) => setDraft(e.target.value)}
-            onBlur={() => commitEdit()}
+            onBlur={() => { if (!editing.draft.trim().startsWith('=')) { commitEdit(); } }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
               else if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
